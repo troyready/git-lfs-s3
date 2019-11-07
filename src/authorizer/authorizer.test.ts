@@ -15,6 +15,8 @@ const mockCognitoIdpadminInitiateAuth = jest.fn().mockImplementation((params) =>
   }
 });
 
+function unusedCallback<T>() { return undefined as any as T; }
+
 describe("Test authorizer", () => {
   test("Verify getCredsFromAuthHeader", () => {
     expect(getCredsFromAuthHeader("Basic Zm9vOmJhcg==")).toEqual(
@@ -23,7 +25,6 @@ describe("Test authorizer", () => {
   });
 
   test("Error returned on missing headers", async () => {
-    function unusedCallback<T>() { return undefined as any as T; }
     await expect(handler(
       {methodArn: mockMethodArn,
        type: "unused"} as CustomAuthorizerEvent,
@@ -34,7 +35,6 @@ describe("Test authorizer", () => {
   });
 
   test("Error returned on missing Authorization header", async () => {
-    function unusedCallback<T>() { return undefined as any as T; }
     await expect(handler(
       {headers: {foo: "bar"},
       methodArn: mockMethodArn,
@@ -48,7 +48,6 @@ describe("Test authorizer", () => {
   test("ExecuteAPI policy returned on valid credentials", async () => {
     CognitoIdentityServiceProvider.prototype.adminInitiateAuth = mockCognitoIdpadminInitiateAuth;
 
-    function unusedCallback<T>() { return undefined as any as T; }
     const authReturn = await handler(
       {headers: {Authorization: "Basic Zm9vOmJhcg=="},
        methodArn: mockMethodArn,
@@ -73,7 +72,7 @@ describe("Test authorizer", () => {
 
   test("Error returned on invalid credentials", async () => {
     CognitoIdentityServiceProvider.prototype.adminInitiateAuth = mockCognitoIdpadminInitiateAuth;
-    function unusedCallback<T>() { return undefined as any as T; }
+
     await expect(handler(
       {headers: {Authorization: "Basic YmFyOmJhcg=="}, // bad password
        methodArn: mockMethodArn,
