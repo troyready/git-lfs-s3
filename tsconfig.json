@@ -1,0 +1,27 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "baseUrl": "src",
+    "rootDirs": [
+      "src"
+    ],
+    "sourceMap": true,
+    "declaration": false,
+    "removeComments": true,
+    "strictNullChecks": true,
+    "target": "es2018", // AWS Lambda Node v10.x
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+  },
+  "typedocOptions": {
+    "exclude": [
+      "**/*.test.ts",
+      "**/__mocks__/*.ts"
+    ],
+    "mode": "modules",
+    "out": "docs"
+  }
+}

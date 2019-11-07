@@ -1,0 +1,37 @@
+{
+  "name": "sls-git-lfs-s3",
+  "version": "1.0.0",
+  "description": "Git LFS S3 Storage Service",
+  "main": "index.js",
+  "scripts": {
+    "docs": "typedoc",
+    "lint": "tslint -c tslint.json 'src/**/*.ts'",
+    "lintfix": "npm run lint -- --fix",
+    "test": "jest",
+    "coverage": "npm test -- --coverage"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.556.0",
+    "source-map-support": "^0.5.10"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.20",
+    "@types/jest": "^24.0.20",
+    "@types/node": "^11.10.4",
+    "aws-sdk-mock": "^4.5.0",
+    "jest": "^24.9.0",
+    "serverless": "^1.38.0",
+    "serverless-iam-roles-per-function": "^2.0.2",
+    "serverless-webpack": "^5.2.0",
+    "ts-jest": "^24.1.0",
+    "ts-loader": "^5.3.3",
+    "ts-node": "^8.0.2",
+    "tslint": "^5.20.0",
+    "typedoc": "^0.15.0",
+    "typescript": "^3.3.3333",
+    "webpack": "^4.29.6",
+    "webpack-node-externals": "^1.7.2"
+  }
+}

@@ -1,0 +1,114 @@
+service: git-lfs-s3
+
+plugins:
+  - serverless-webpack
+  - serverless-iam-roles-per-function
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+
+custom:
+  webpack:
+    excludeFiles:
+      - "src/**/*.test.ts"
+      - "src/**/__mocks__/*.ts"
+    includeModules:
+      forceExclude:
+        - aws-sdk
+
+functions:
+  batch:
+    handler: src/batch/batch.handler
+    iamRoleStatements:
+      - Action:
+          - s3:ListBucket
+        Effect: "Allow"
+        Resource:
+          Fn::GetAtt:
+            - StorageBucket
+            - Arn
+      - Action:
+          - s3:GetObject
+          - s3:PutObject
+        Effect: "Allow"
+        Resource:
+          Fn::Join:
+            - ""
+            - - Fn::GetAtt:
+                  - StorageBucket
+                  - Arn
+              - "/*"
+    environment:
+      BUCKET_NAME:
+        Ref: StorageBucket
+    events:
+      - http:
+          path: objects/batch
+          method: post
+          integration: lambda-proxy
+          authorizer: &authorizer
+            name: authorizer
+            resultTtlInSeconds: 0
+            identitySource: method.request.header.Authorization
+            type: request
+  locks:
+    handler: src/locks/locks.handler
+    events:
+      - http:
+          path: locks/{proxy+}
+          method: post
+          integration: lambda-proxy
+          authorizer: *authorizer
+  authorizer:
+    handler: src/authorizer/authorizer.handler
+    environment:
+      USER_POOL_ID:
+        Ref: UserPool
+      USER_POOL_CLIENT_ID:
+        Ref: UserPoolClient
+    iamRoleStatements:
+      - Action:
+          - cognito-idp:AdminInitiateAuth
+        Effect: "Allow"
+        Resource:
+          Fn::GetAtt:
+            - UserPool
+            - Arn
+
+resources:
+  Resources:
+    GatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.WWW-Authenticate: "'Basic'"
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+    StorageBucket:
+      Type: AWS::S3::Bucket
+      DeletionPolicy: Retain
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties: 
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: true
+        UserPoolName: "${self:service}-${opt:stage}"
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties: 
+        ClientName: "${self:service}-${opt:stage}"
+        ExplicitAuthFlows: 
+          - ADMIN_NO_SRP_AUTH
+        GenerateSecret: false
+        SupportedIdentityProviders: 
+          - COGNITO
+        UserPoolId:
+          Ref: UserPool
+  Outputs:
+    UserPoolId:
+      Description: Id of the Cognito User Pool
+      Value:
+        Ref: UserPool
