@@ -1,5 +1,8 @@
 # Git LFS S3 Storage Service
 
+[![Build Status](https://travis-ci.org/troyready/git-lfs-s3.svg?branch=master)](https://travis-ci.org/troyready/git-lfs-s3)
+
+
 This project deploys a [Serverless](https://serverless.com/cli/) [Git LFS](https://git-lfs.github.com/) service, with objects stored on S3 & authentication performed via a Cognito User Pool.
 
 ## Purpose
