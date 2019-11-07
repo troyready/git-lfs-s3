@@ -39,8 +39,8 @@ async function getBatchObject(operation: string, oid: string, size: number): Pro
       Bucket: bucketName!,
       Key: oid!,
     }).promise();
-    if (operation === "upload") {
-      return baseResponse; // upload request for existing object (no-op)
+    if (operation === "upload") { // upload request for existing object (no-op)
+      return baseResponse;
     } else if (operation === "download") { // download request for existing object
       const downloadUrlExpiry = getExpiryString();
       const downloadUrl = await s3Client.getSignedUrlPromise("getObject",
