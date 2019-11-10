@@ -7,6 +7,8 @@
     "docs": "typedoc",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "lintfix": "npm run lint -- --fix",
+    "style": "prettier --check 'src/**/*.ts'",
+    "stylefix": "prettier --write 'src/**/*.ts'",
     "test": "jest",
     "coverage": "npm test -- --coverage"
   },
@@ -22,6 +24,7 @@
     "@types/node": "^11.10.4",
     "aws-sdk-mock": "^4.5.0",
     "jest": "^24.9.0",
+    "prettier": "^1.19.1",
     "serverless": "^1.38.0",
     "serverless-iam-roles-per-function": "^2.0.2",
     "serverless-webpack": "^5.2.0",
@@ -33,5 +36,8 @@
     "typescript": "^3.3.3333",
     "webpack": "^4.29.6",
     "webpack-node-externals": "^1.7.2"
+  },
+  "prettier": {
+    "trailingComma": "all"
   }
 }

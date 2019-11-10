@@ -13,9 +13,13 @@ export class S3Adapter {
 
   public async getSignedUrlPromise(operation: string, params: any) {
     return new Promise((resolve, reject) => {
-      if ((operation) && ("Bucket" in params) && ("Key" in params)) {
+      if (operation && "Bucket" in params && "Key" in params) {
         return resolve(
-          "https://" + params.Bucket + ".s3.us-west-2.amazonaws.com/" + params.Key + "?...",
+          "https://" +
+            params.Bucket +
+            ".s3.us-west-2.amazonaws.com/" +
+            params.Key +
+            "?...",
         );
       } else {
         reject(new Error("Missing required parameters"));
@@ -24,14 +28,16 @@ export class S3Adapter {
   }
 
   public headObject(params: S3.Types.HeadObjectRequest) {
-    return {promise: () => {
-      return new Promise((resolve, reject) => {
-        if (["mockexists1", "mockexists2"].includes(params.Key)) {
-          resolve({ContentLength: 3191, ContentType: "image/jpeg" });
-        } else {
-          reject({code: "NotFound"});
-        }
-      });
-    }};
+    return {
+      promise: () => {
+        return new Promise((resolve, reject) => {
+          if (["mockexists1", "mockexists2"].includes(params.Key)) {
+            resolve({ ContentLength: 3191, ContentType: "image/jpeg" });
+          } else {
+            reject({ code: "NotFound" });
+          }
+        });
+      },
+    };
   }
 }
