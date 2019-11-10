@@ -7,8 +7,6 @@
     "docs": "typedoc",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "lintfix": "npm run lint -- --fix",
-    "style": "prettier --check 'src/**/*.ts'",
-    "stylefix": "prettier --write 'src/**/*.ts'",
     "test": "jest",
     "coverage": "npm test -- --coverage"
   },
@@ -32,6 +30,8 @@
     "ts-loader": "^5.3.3",
     "ts-node": "^8.0.2",
     "tslint": "^5.20.0",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-plugin-prettier": "^2.0.1",
     "typedoc": "^0.15.0",
     "typescript": "^3.3.3333",
     "webpack": "^4.29.6",
