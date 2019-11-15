@@ -34,13 +34,13 @@ After the serverless project is deployed (see `API` above), create a user in the
 ```
 aws cognito-idp admin-create-user --user-pool-id USERPOOLID --username DESIREDUSERNAME --user-attributes=Name=email,Value=DESIREDEMAILADDRESS,Name=phone_number,Value="+1XXXXXXXXXX" --message-action SUPPRESS --region REGION
 ```
-(substituing `USERPOOLID`, `DESIREDUSERNAME`, `DESIREDEMAILADDRESS`, `REGION`, & the phone number `XXXXXXXXXX`)
+(substituting `USERPOOLID`, `DESIREDUSERNAME`, `DESIREDEMAILADDRESS`, `REGION`, & the phone number `XXXXXXXXXX`)
 
 Then set a password for that user (ensure [it is not saved in your shell history](https://stackoverflow.com/a/29188490/2547802)):
 ```
  aws cognito-idp admin-set-user-password --user-pool-id USERPOOLID --username DESIREDUSERNAME --password PASSWORDHERE --permanent --region REGION
 ```
-(substituing `USERPOOLID`, `DESIREDUSERNAME`, `PASSWORDHERE`, & `REGION`)
+(substituting `USERPOOLID`, `DESIREDUSERNAME`, `PASSWORDHERE`, & `REGION`)
 
 ## Configuring a Repo to Use the Git LFS Service
 
