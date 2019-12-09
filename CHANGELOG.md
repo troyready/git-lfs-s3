@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2019-12-09
+### Changed
+- Dropped webpack-node-externals in favor of bundling in aws-sdk directly
+    - This significantly increases the package size (+2MB), but demonstrates better technical correctness by using the exact sdk version specified in package.json
+
+### Fixed
+- Dependency security updates
+
 ## [1.0.0] - 2019-11-06
 ### Added
 - Initial release
