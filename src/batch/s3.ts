@@ -19,18 +19,7 @@ export class S3Adapter {
   }
 
   public async getSignedUrlPromise(operation: string, params: any) {
-    // Can simplify this to a direct getSignedUrlPromise invocation after
-    // shipped sdk updated to >=2.520.0
-    // https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html
-    return new Promise((resolve, reject) => {
-      this.s3Client.getSignedUrl(operation, params, (err, url) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(url);
-        }
-      });
-    });
+    return this.s3Client.getSignedUrlPromise(operation, params);
   }
 
   public headObject(params: S3.Types.HeadObjectRequest) {
