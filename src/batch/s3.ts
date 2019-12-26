@@ -14,7 +14,7 @@ import { S3 } from "aws-sdk";
 /** S3 adapter class
  *
  * Each method maps to the corresponding S3 client method
-*/
+ */
 export class S3Adapter {
   public s3Client: S3;
   constructor() {
