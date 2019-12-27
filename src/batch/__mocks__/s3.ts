@@ -1,8 +1,9 @@
 /**
  * /objects/batch S3 mock module
+ *
+ * @packageDocumentation
  */
 
-/** imports (delete comment after https://github.com/TypeStrong/typedoc/issues/603 resolution) */
 import { S3 } from "aws-sdk";
 
 export class S3Adapter {

@@ -1,8 +1,9 @@
 /**
  * HTTP Basic Auth authorizer
+ *
+ * @packageDocumentation
  */
 
-/** imports (delete comment after https://github.com/TypeStrong/typedoc/issues/603 resolution) */
 import {
   Context,
   CustomAuthorizerEvent,

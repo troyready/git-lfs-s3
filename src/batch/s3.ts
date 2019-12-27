@@ -6,9 +6,10 @@
  * client imported by "import * as S3 from 'aws-sdk/clients/s3'", while
  * other mocks like headObject need to be made from a client imported by
  * " import { S3 } from 'aws-sdk'".
+ *
+ * @packageDocumentation
  */
 
-/** imports (delete comment after https://github.com/TypeStrong/typedoc/issues/603 resolution) */
 import { S3 } from "aws-sdk";
 
 /** S3 adapter class
