@@ -20,12 +20,12 @@
     "@types/aws-lambda": "^8.10.20",
     "@types/jest": "^24.0.20",
     "@types/node": "^11.10.4",
-    "jest": "^24.9.0",
+    "jest": "^26.6.3",
     "prettier": "^1.19.1",
-    "serverless": "^1.38.0",
+    "serverless": "^2.20.0",
     "serverless-iam-roles-per-function": "^2.0.2",
     "serverless-webpack": "^5.2.0",
-    "ts-jest": "^24.1.0",
+    "ts-jest": "^26.4.4",
     "ts-loader": "^5.3.3",
     "ts-node": "^8.0.2",
     "tslint": "^5.20.0",
@@ -33,7 +33,7 @@
     "tslint-plugin-prettier": "^2.0.1",
     "typedoc": "^0.15.6",
     "typescript": "^3.3.3333",
-    "webpack": "^4.29.6"
+    "webpack": "^5.16.0"
   },
   "prettier": {
     "trailingComma": "all"
