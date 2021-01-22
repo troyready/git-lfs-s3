@@ -160,7 +160,9 @@ async function deleteLock(
         .promise();
       return {
         statusCode: 200,
-        body: {lock: formatLockResponseFromTableEntry(queryResponse.Items[0])},
+        body: {
+          lock: formatLockResponseFromTableEntry(queryResponse.Items[0]),
+        },
       };
     } else {
       return {

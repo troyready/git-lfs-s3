@@ -1,0 +1,17 @@
+name: Test
+
+on: push
+
+jobs:
+  test:
+    name: Lint & unit test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install modules
+        run: npm ci
+      - name: Run linter
+        run: npm run lint
+      - name: Run unit tests
+        run: npm run coverage
