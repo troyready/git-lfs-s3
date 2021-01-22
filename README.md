@@ -32,7 +32,7 @@ Upon completion, the 2 relevant stack outputs to note are:
 After the serverless project is deployed (see `API` above), create a user in the user pool:
 
 ```bash
-aws cognito-idp admin-create-user --user-pool-id USERPOOLID --username DESIREDUSERNAME --user-attributes=Name=email,Value=DESIREDEMAILADDRESS,Name=phone_number,Value="+1XXXXXXXXXX" --message-action SUPPRESS --region REGION
+aws cognito-idp admin-create-user --user-pool-id USERPOOLID --username DESIREDUSERNAME --user-attributes Name=email,Value=DESIREDEMAILADDRESS Name=phone_number,Value="+1XXXXXXXXXX" --message-action SUPPRESS --region REGION
 ```
 
 (substituting `USERPOOLID`, `DESIREDUSERNAME`, `DESIREDEMAILADDRESS`, `REGION`, & the phone number `XXXXXXXXXX`)

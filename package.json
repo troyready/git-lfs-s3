@@ -1,6 +1,6 @@
 {
   "name": "sls-git-lfs-s3",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Git LFS S3 Storage Service",
   "main": "index.js",
   "scripts": {
@@ -14,12 +14,14 @@
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.556.0",
-    "source-map-support": "^0.5.10"
+    "source-map-support": "^0.5.10",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.20",
     "@types/jest": "^24.0.20",
     "@types/node": "^11.10.4",
+    "@types/uuid": "^8.3.0",
     "jest": "^26.6.3",
     "prettier": "^1.19.1",
     "serverless": "^2.20.0",

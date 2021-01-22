@@ -12,6 +12,7 @@ import {
 } from "aws-lambda";
 import "source-map-support/register";
 import { S3Adapter } from "./s3";
+import { ISODateString } from "../util/util";
 
 const bucketName = process.env.BUCKET_NAME;
 const urlExpiry = 21600; // 6 hours; max for url from metadata creds
@@ -19,26 +20,6 @@ const s3Client = new S3Adapter();
 
 /** Generate a RFC 3339 date string */
 export function getExpiryString(): string {
-  function ISODateString(d: Date) {
-    function pad(num: number) {
-      return num < 10 ? "0" + num : num;
-    }
-    return (
-      d.getUTCFullYear() +
-      "-" +
-      pad(d.getUTCMonth() + 1) +
-      "-" +
-      pad(d.getUTCDate()) +
-      "T" +
-      pad(d.getUTCHours()) +
-      ":" +
-      pad(d.getUTCMinutes()) +
-      ":" +
-      pad(d.getUTCSeconds()) +
-      "Z"
-    );
-  }
-
   const expiryDate = new Date();
   expiryDate.setSeconds(expiryDate.getSeconds() + urlExpiry);
   return ISODateString(expiryDate);

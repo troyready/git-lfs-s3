@@ -6,7 +6,7 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs10.x
+  runtime: nodejs12.x
 
 custom:
   webpack:
@@ -57,10 +57,46 @@ functions:
             type: request
   locks:
     handler: src/locks/locks.handler
+    iamRoleStatements:
+      - Action:
+          - dynamodb:DeleteItem
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:Query
+          - dynamodb:Scan
+        Effect: "Allow"
+        Resource:
+          Fn::GetAtt:
+            - LockTable
+            - Arn
+      - Action:
+          - dynamodb:Query
+        Effect: "Allow"
+        Resource:
+          Fn::Join:
+            - ""
+            - - Fn::GetAtt:
+                  - LockTable
+                  - Arn
+              - /index/*
+    environment:
+      TABLE_NAME:
+        Ref: LockTable
+      ID_INDEX_NAME: &idindexname IdIndex
     events:
       - http:
           path: locks/{proxy+}
           method: post
+          integration: lambda-proxy
+          authorizer: *authorizer
+      - http:
+          path: locks
+          method: get  # list locks
+          integration: lambda-proxy
+          authorizer: *authorizer
+      - http:
+          path: locks
+          method: post  # create lock
           integration: lambda-proxy
           authorizer: *authorizer
   authorizer:
@@ -93,6 +129,26 @@ resources:
     StorageBucket:
       Type: AWS::S3::Bucket
       DeletionPolicy: Retain
+    LockTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "path"
+            AttributeType: "S"
+          - AttributeName: "id"
+            AttributeType: "S"
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: *idindexname
+            KeySchema:
+              - AttributeName: id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        KeySchema:
+          - AttributeName: path
+            KeyType: HASH
     UserPool:
       Type: AWS::Cognito::UserPool
       Properties: 
