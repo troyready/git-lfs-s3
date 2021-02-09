@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.2.0] - 2021-02-10
+### Changed
+- Update to aws sdk v3
+- Package functions individually
+
 ## [1.1.0] - 2021-01-21
 ### Added
 - Git LFS locking support
@@ -25,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
-[Unreleased]: https://github.com/troyready/git-lfs-s3/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/troyready/git-lfs-s3/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/troyready/git-lfs-s3/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/troyready/git-lfs-s3/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/troyready/git-lfs-s3/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/troyready/git-lfs-s3/releases/tag/v1.0.0

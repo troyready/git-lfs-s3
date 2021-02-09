@@ -12,39 +12,32 @@ import {
 } from "aws-lambda";
 import "source-map-support/register";
 import { v4 as uuidv4 } from "uuid";
-import { DynamoDB } from "aws-sdk";
+import {
+  DynamoDBClient,
+  DeleteItemCommand,
+  GetItemCommand,
+  QueryCommand,
+  PutItemCommand,
+  paginateScan,
+} from "@aws-sdk/client-dynamodb";
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { ISODateString } from "../util/util";
 
 const tableName = process.env.TABLE_NAME!;
 const tableIdIndexName = process.env.ID_INDEX_NAME!;
 const deletePathRegex = /\/locks\/([-a-zA-Z0-9]*)\/unlock/;
-const docClient = new DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
+const ddbClient = new DynamoDBClient({});
 
-/** Return all lock items from DDB table */
-async function scanTable(
-  alreadyScannedItems?: Array<any>,
-  lastEvalutedKey?: DynamoDB.DocumentClient.Key,
-): Promise<Array<any>> {
-  const params = { TableName: tableName };
-  if (typeof lastEvalutedKey !== "undefined") {
-    params["ExclusiveStartKey"] = lastEvalutedKey;
-  }
-
+/** Return all lock items (in native js types) from DDB table */
+async function scanTable(): Promise<Array<any>> {
   let items: Array<any> = [];
-  if (typeof alreadyScannedItems !== "undefined") {
-    items = alreadyScannedItems;
+  let paginator = paginateScan({ client: ddbClient }, { TableName: tableName });
+  for await (const page of paginator) {
+    if ("Items" in page) {
+      items = [...items, ...page.Items!.map(e => unmarshall(e))];
+    }
   }
-
-  let scanResponse = await docClient.scan(params).promise();
-  if ("Items" in scanResponse) {
-    items = [...items, ...scanResponse.Items!];
-  }
-
-  if (scanResponse.LastEvaluatedKey) {
-    return await scanTable(items, scanResponse.LastEvaluatedKey!);
-  } else {
-    return items;
-  }
+  return items;
 }
 
 /** Turn DDB item format into Git LFS API format */
@@ -61,27 +54,32 @@ function formatLockResponseFromTableEntry(entry: any): any {
 async function listLocks(params: any): Promise<object> {
   var locks: any = { locks: [] };
   if (params.id) {
-    let queryResponse = await docClient
-      .query({
+    let queryResponse = await ddbClient.send(
+      new QueryCommand({
         TableName: tableName,
         IndexName: tableIdIndexName,
         KeyConditionExpression: "id = :hkey",
-        ExpressionAttributeValues: {
+        ExpressionAttributeValues: marshall({
           ":hkey": params.id,
-        },
-      })
-      .promise();
+        }),
+      }),
+    );
     if (queryResponse.Items && queryResponse.Items.length > 0) {
       locks.locks.push(
-        formatLockResponseFromTableEntry(queryResponse.Items[0]),
+        formatLockResponseFromTableEntry(unmarshall(queryResponse.Items[0])),
       );
     }
   } else if (params.path) {
-    let getResponse = await docClient
-      .get({ TableName: tableName, Key: { path: params.path } })
-      .promise();
+    let getResponse = await ddbClient.send(
+      new GetItemCommand({
+        TableName: tableName,
+        Key: marshall({ path: params.path }),
+      }),
+    );
     if (getResponse.Item) {
-      locks.locks.push(formatLockResponseFromTableEntry(getResponse.Item));
+      locks.locks.push(
+        formatLockResponseFromTableEntry(unmarshall(getResponse.Item)),
+      );
     }
   } else {
     for (const tableLockEntry of await scanTable()) {
@@ -108,14 +106,17 @@ async function listVerifyLocks(username: string): Promise<object> {
 /** Create file lock */
 async function createLock(body: any, username: string): Promise<any> {
   // First check for existing lock
-  let getResponse = await docClient
-    .get({ TableName: tableName, Key: { path: body.path } })
-    .promise();
+  let getResponse = await ddbClient.send(
+    new GetItemCommand({
+      TableName: tableName,
+      Key: marshall({ path: body.path }),
+    }),
+  );
   if (getResponse.Item) {
     return {
       statusCode: 409,
       body: {
-        lock: formatLockResponseFromTableEntry(getResponse.Item),
+        lock: formatLockResponseFromTableEntry(unmarshall(getResponse.Item)),
         message: "already created lock",
       },
     };
@@ -127,7 +128,9 @@ async function createLock(body: any, username: string): Promise<any> {
     lockedAt: ISODateString(new Date()),
     ownerName: username,
   };
-  await docClient.put({ TableName: tableName, Item: itemParams }).promise();
+  await ddbClient.send(
+    new PutItemCommand({ TableName: tableName, Item: marshall(itemParams) }),
+  );
   return {
     statusCode: 201,
     body: { lock: formatLockResponseFromTableEntry(itemParams) },
@@ -140,28 +143,33 @@ async function deleteLock(
   username: string,
   lockId: string,
 ): Promise<any> {
-  let queryResponse = await docClient
-    .query({
+  let queryResponse = await ddbClient.send(
+    new QueryCommand({
       TableName: tableName,
       IndexName: tableIdIndexName,
       KeyConditionExpression: "id = :hkey",
-      ExpressionAttributeValues: {
+      ExpressionAttributeValues: marshall({
         ":hkey": lockId,
-      },
-    })
-    .promise();
+      }),
+    }),
+  );
   if (queryResponse.Items && queryResponse.Items.length > 0) {
-    if (queryResponse.Items[0].ownerName == username || body.force) {
-      await docClient
-        .delete({
+    if (
+      unmarshall(queryResponse.Items[0]).ownerName == username ||
+      body.force
+    ) {
+      await ddbClient.send(
+        new DeleteItemCommand({
           TableName: tableName,
-          Key: { path: queryResponse.Items[0].path },
-        })
-        .promise();
+          Key: marshall({ path: unmarshall(queryResponse.Items[0]).path }),
+        }),
+      );
       return {
         statusCode: 200,
         body: {
-          lock: formatLockResponseFromTableEntry(queryResponse.Items[0]),
+          lock: formatLockResponseFromTableEntry(
+            unmarshall(queryResponse.Items[0]),
+          ),
         },
       };
     } else {

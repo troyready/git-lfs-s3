@@ -1,33 +1,44 @@
-jest.mock("aws-sdk");
 import { Context, CustomAuthorizerEvent } from "aws-lambda";
-import { CognitoIdentityServiceProvider } from "aws-sdk";
+
+const mockCognitoIdpSend = jest.fn();
+jest.mock("@aws-sdk/client-cognito-identity-provider", () => {
+  return {
+    ...jest.requireActual("@aws-sdk/client-cognito-identity-provider"),
+    CognitoIdentityProviderClient: function CognitoIdentityProviderClient(): void {
+      this.send = mockCognitoIdpSend;
+    },
+  };
+});
+import { AdminInitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { getCredsFromAuthHeader, handler } from "./authorizer";
 
 const mockMethodArn =
   "arn:aws:execute-api:us-west-2:123456790:apiIdFoo/dev/post/unused";
-const mockCognitoIdpadminInitiateAuth = jest.fn().mockImplementation(params => {
-  if (
-    "AuthParameters" in params &&
-    params.AuthParameters.USERNAME === "foo" &&
-    params.AuthParameters.PASSWORD === "bar"
-  ) {
-    return {
-      promise: jest.fn().mockResolvedValue({
-        AuthenticationResult: {},
-      }),
-    };
-  } else {
-    return {
-      promise: jest.fn().mockRejectedValue(new Error("Invalid credentials")),
-    };
-  }
-});
+const mockCognitoIdpSendImplementation = jest
+  .fn()
+  .mockImplementation(command => {
+    if (command instanceof AdminInitiateAuthCommand) {
+      if (
+        "AuthParameters" in command.input &&
+        command.input.AuthParameters!.USERNAME === "foo" &&
+        command.input.AuthParameters!.PASSWORD === "bar"
+      ) {
+        return Promise.resolve({ AuthenticationResult: {} });
+      } else {
+        return jest.fn().mockRejectedValue(new Error("Invalid credentials"));
+      }
+    }
+  });
 
 function unusedCallback<T>() {
   return (undefined as any) as T;
 }
 
 describe("Test authorizer", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("Verify getCredsFromAuthHeader", () => {
     expect(getCredsFromAuthHeader("Basic Zm9vOmJhcg==")).toEqual({
       password: "bar",
@@ -43,7 +54,6 @@ describe("Test authorizer", () => {
         unusedCallback<any>(),
       ),
     ).rejects.toThrow(Error);
-    jest.clearAllMocks();
   });
 
   test("Error returned on missing Authorization header", async () => {
@@ -58,11 +68,10 @@ describe("Test authorizer", () => {
         unusedCallback<any>(),
       ),
     ).rejects.toThrow(Error);
-    jest.clearAllMocks();
   });
 
   test("ExecuteAPI policy returned on valid credentials", async () => {
-    CognitoIdentityServiceProvider.prototype.adminInitiateAuth = mockCognitoIdpadminInitiateAuth;
+    mockCognitoIdpSend.mockImplementation(mockCognitoIdpSendImplementation);
 
     const authReturn = await handler(
       {
@@ -88,11 +97,11 @@ describe("Test authorizer", () => {
       },
       principalId: "foo",
     });
-    jest.clearAllMocks();
+    // jest.clearAllMocks();
   });
 
   test("Error returned on invalid credentials", async () => {
-    CognitoIdentityServiceProvider.prototype.adminInitiateAuth = mockCognitoIdpadminInitiateAuth;
+    mockCognitoIdpSend.mockImplementation(mockCognitoIdpSendImplementation);
 
     await expect(
       handler(
@@ -105,6 +114,5 @@ describe("Test authorizer", () => {
         unusedCallback<any>(),
       ),
     ).rejects.toThrow(Error);
-    jest.clearAllMocks();
   });
 });

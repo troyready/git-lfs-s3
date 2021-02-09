@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+/** Generate a RFC 3339 date string */
 export function ISODateString(d: Date) {
   function pad(num: number) {
     return num < 10 ? "0" + num : num;

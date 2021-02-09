@@ -11,14 +11,15 @@ import {
   CustomAuthorizerResult,
   PolicyDocument,
 } from "aws-lambda";
-import { CognitoIdentityServiceProvider } from "aws-sdk";
+import {
+  AdminInitiateAuthCommand,
+  CognitoIdentityProviderClient,
+} from "@aws-sdk/client-cognito-identity-provider";
 import "source-map-support/register";
 
 const userPoolId = process.env.USER_POOL_ID;
 const userPoolClientId = process.env.USER_POOL_CLIENT_ID;
-const cognitoIdpClient = new CognitoIdentityServiceProvider({
-  apiVersion: "2016-04-18",
-});
+const cognitoIdpClient = new CognitoIdentityProviderClient({});
 
 /** Adapt the event methodArn to an IAM policy */
 function generateInvokePolicy(
@@ -60,17 +61,17 @@ async function validateUser(
 ): Promise<boolean> {
   console.log("Validating user creds for user " + username);
   try {
-    const authResponse = await cognitoIdpClient
-      .adminInitiateAuth({
+    const authResponse = await cognitoIdpClient.send(
+      new AdminInitiateAuthCommand({
         AuthFlow: "ADMIN_NO_SRP_AUTH",
         AuthParameters: {
           PASSWORD: password,
           USERNAME: username,
         },
-        ClientId: userPoolClientId as string,
-        UserPoolId: userPoolId as string,
-      })
-      .promise();
+        ClientId: userPoolClientId,
+        UserPoolId: userPoolId,
+      }),
+    );
 
     if ("AuthenticationResult" in authResponse) {
       console.log("User credentials validated successfully");

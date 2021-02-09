@@ -1,6 +1,6 @@
 {
   "name": "sls-git-lfs-s3",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Git LFS S3 Storage Service",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.556.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.4.0",
+    "@aws-sdk/client-dynamodb": "^3.4.0",
+    "@aws-sdk/client-s3": "^3.4.0",
+    "@aws-sdk/s3-request-presigner": "^3.4.0",
+    "@aws-sdk/util-dynamodb": "^3.4.0",
     "source-map-support": "^0.5.10",
     "uuid": "^8.3.2"
   },

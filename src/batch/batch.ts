@@ -11,14 +11,20 @@ import {
   Context,
 } from "aws-lambda";
 import "source-map-support/register";
-import { S3Adapter } from "./s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ISODateString } from "../util/util";
 
 const bucketName = process.env.BUCKET_NAME;
 const urlExpiry = 21600; // 6 hours; max for url from metadata creds
-const s3Client = new S3Adapter();
+const s3Client = new S3Client({});
 
-/** Generate a RFC 3339 date string */
+/** Generate RFC 3339 date string set out in the future when S3 presigned URLs will expire */
 export function getExpiryString(): string {
   const expiryDate = new Date();
   expiryDate.setSeconds(expiryDate.getSeconds() + urlExpiry);
@@ -34,12 +40,12 @@ async function getBatchObject(
   const baseResponse = { oid, size };
 
   try {
-    await s3Client
-      .headObject({
+    await s3Client.send(
+      new HeadObjectCommand({
         Bucket: bucketName!,
         Key: oid!,
-      })
-      .promise();
+      }),
+    );
 
     if (operation === "upload") {
       // upload request for existing object (no-op)
@@ -47,11 +53,11 @@ async function getBatchObject(
     } else if (operation === "download") {
       // download request for existing object
       const downloadUrlExpiry = getExpiryString();
-      const downloadUrl = await s3Client.getSignedUrlPromise("getObject", {
-        Bucket: bucketName,
-        Expires: urlExpiry,
-        Key: oid,
-      });
+      const downloadUrl = await getSignedUrl(
+        s3Client,
+        new GetObjectCommand({ Bucket: bucketName, Key: oid }),
+        { expiresIn: urlExpiry },
+      );
       return {
         ...baseResponse,
         actions: {
@@ -64,17 +70,20 @@ async function getBatchObject(
       };
     }
   } catch (err) {
-    if (err.code === "NotFound") {
+    if (err.name === "NotFound") {
       if (operation === "upload") {
         // upload request for missing object
         const mimeType = "application/octet-stream";
         const uploadUrlExpiry = getExpiryString();
-        const uploadUrl = await s3Client.getSignedUrlPromise("putObject", {
-          Bucket: bucketName,
-          ContentType: mimeType,
-          Expires: urlExpiry,
-          Key: oid,
-        });
+        const uploadUrl = await getSignedUrl(
+          s3Client,
+          new PutObjectCommand({
+            Bucket: bucketName,
+            ContentType: mimeType,
+            Key: oid,
+          }),
+          { expiresIn: urlExpiry },
+        );
         return {
           ...baseResponse,
           actions: {

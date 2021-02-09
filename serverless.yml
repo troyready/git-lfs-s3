@@ -8,17 +8,14 @@ provider:
   name: aws
   runtime: nodejs12.x
 
+package:
+  individually: true
+
 custom:
   webpack:
     excludeFiles:
       - "src/**/*.test.ts"
       - "src/**/__mocks__/*.ts"
-    # We could exclude aws-sdk here to trim down the deployment package via
-    # webpack-node-externals (see webpack.config.js), but instead we'll
-    # include it so the sdk version used is predictable.
-    # includeModules:
-    #   forceExclude:
-    #     - aws-sdk
 
 functions:
   batch:
