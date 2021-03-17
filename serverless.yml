@@ -13,6 +13,7 @@ package:
 
 custom:
   webpack:
+    serializedCompile: true
     excludeFiles:
       - "src/**/*.test.ts"
       - "src/**/__mocks__/*.ts"

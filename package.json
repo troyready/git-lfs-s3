@@ -1,6 +1,6 @@
 {
   "name": "sls-git-lfs-s3",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Git LFS S3 Storage Service",
   "main": "index.js",
   "scripts": {
@@ -30,7 +30,7 @@
     "prettier": "^1.19.1",
     "serverless": "^2.20.0",
     "serverless-iam-roles-per-function": "^3.1.0",
-    "serverless-webpack": "^5.2.0",
+    "serverless-webpack": "^5.4.0",
     "ts-jest": "^26.4.4",
     "ts-loader": "^5.3.3",
     "ts-node": "^8.0.2",
