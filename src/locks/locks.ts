@@ -23,6 +23,9 @@ import {
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { ISODateString } from "../util/util";
 
+type LockObjKey = "locks";
+type LocksVerifyObjKeys = "ours" | "theirs";
+
 const tableName = process.env.TABLE_NAME!;
 const tableIdIndexName = process.env.ID_INDEX_NAME!;
 const deletePathRegex = /\/locks\/([-a-zA-Z0-9]*)\/unlock/;
@@ -31,7 +34,7 @@ const ddbClient = new DynamoDBClient({});
 /** Return all lock items (in native js types) from DDB table */
 async function scanTable(): Promise<Array<any>> {
   let items: Array<any> = [];
-  let paginator = paginateScan({ client: ddbClient }, { TableName: tableName });
+  const paginator = paginateScan({ client: ddbClient }, { TableName: tableName });
   for await (const page of paginator) {
     if ("Items" in page) {
       items = [...items, ...page.Items!.map(e => unmarshall(e))];
@@ -51,10 +54,10 @@ function formatLockResponseFromTableEntry(entry: any): any {
 }
 
 /** List all locks or (if id or path provided) a single lock */
-async function listLocks(params: any): Promise<object> {
-  var locks: any = { locks: [] };
+async function listLocks(params: any): Promise<Record<LockObjKey, any[]>> {
+  const locks: Record<LockObjKey, any[]> = { locks: [] };
   if (params.id) {
-    let queryResponse = await ddbClient.send(
+    const queryResponse = await ddbClient.send(
       new QueryCommand({
         TableName: tableName,
         IndexName: tableIdIndexName,
@@ -70,7 +73,7 @@ async function listLocks(params: any): Promise<object> {
       );
     }
   } else if (params.path) {
-    let getResponse = await ddbClient.send(
+    const getResponse = await ddbClient.send(
       new GetItemCommand({
         TableName: tableName,
         Key: marshall({ path: params.path }),
@@ -90,8 +93,8 @@ async function listLocks(params: any): Promise<object> {
 }
 
 /** List locks in locks/verify format */
-async function listVerifyLocks(username: string): Promise<object> {
-  var locks: any = { ours: [], theirs: [] };
+async function listVerifyLocks(username: string): Promise<Record<LocksVerifyObjKeys, unknown>> {
+  const locks: Record<LocksVerifyObjKeys, any[]> = { ours: [], theirs: [] };
 
   for (const tableLockEntry of await scanTable()) {
     if (tableLockEntry.ownerName == username) {
@@ -106,7 +109,7 @@ async function listVerifyLocks(username: string): Promise<object> {
 /** Create file lock */
 async function createLock(body: any, username: string): Promise<any> {
   // First check for existing lock
-  let getResponse = await ddbClient.send(
+  const getResponse = await ddbClient.send(
     new GetItemCommand({
       TableName: tableName,
       Key: marshall({ path: body.path }),
@@ -143,7 +146,7 @@ async function deleteLock(
   username: string,
   lockId: string,
 ): Promise<any> {
-  let queryResponse = await ddbClient.send(
+  const queryResponse = await ddbClient.send(
     new QueryCommand({
       TableName: tableName,
       IndexName: tableIdIndexName,
@@ -186,11 +189,11 @@ async function deleteLock(
 }
 
 /** AWS Lambda entrypoint */
-export let handler: APIGatewayProxyHandler = async (
+export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent,
-  context: Context,
+  context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<APIGatewayProxyResult> => {
-  let username: string = "";
+  let username = "";
   if (
     event.requestContext &&
     event.requestContext.authorizer &&

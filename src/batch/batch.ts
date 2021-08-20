@@ -36,7 +36,7 @@ async function getBatchObject(
   operation: string,
   oid: string,
   size: number,
-): Promise<object> {
+): Promise<Record<string, unknown>> {
   const baseResponse = { oid, size };
 
   try {
@@ -113,7 +113,7 @@ async function getBatchObject(
 }
 
 /** Iterate through requested objects and get the storage response for each of them */
-async function getBatchResponse(body: any): Promise<object> {
+async function getBatchResponse(body: any): Promise<Record<string, unknown>> {
   const objects: Array<Promise<any>> = [];
   for (const entry of body.objects) {
     objects.push(getBatchObject(body.operation, entry.oid, entry.size));
@@ -122,9 +122,9 @@ async function getBatchResponse(body: any): Promise<object> {
 }
 
 /** AWS Lambda entrypoint */
-export let handler: APIGatewayProxyHandler = async (
+export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent,
-  context: Context,
+  context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<APIGatewayProxyResult> => {
   let body: any = {};
   if (event.body) {

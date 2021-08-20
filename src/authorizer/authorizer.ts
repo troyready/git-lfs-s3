@@ -103,9 +103,9 @@ export function getCredsFromAuthHeader(
 }
 
 /** AWS Lambda entrypoint */
-export let handler: CustomAuthorizerHandler = async (
+export const handler: CustomAuthorizerHandler = async (
   event: CustomAuthorizerEvent,
-  context: Context,
+  context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<CustomAuthorizerResult> => {
   if (!event.headers) {
     throw new Error("No headers provided in event");
