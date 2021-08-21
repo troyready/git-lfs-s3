@@ -65,6 +65,5 @@ That's it. On push/pull, you'll be prompted for Cognito credentials.
 ## Further Customization Ideas
 
 * Add an API Gateway custom domain to the API to get a better URL
-  * One option for this would be to use [Runway](https://github.com/onicagroup/runway) to tie together this project & a [Terraform](https://www.terraform.io/) project to handle the ACM Certificate & custom domain
 * Swap out authentication
   * Any backend method (e.g. LDAP) could be adapted into the authorizer in place of the current Cognito AdminInitiateAuth process.
