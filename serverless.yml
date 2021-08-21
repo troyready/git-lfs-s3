@@ -1,7 +1,7 @@
 service: git-lfs-s3
 
 plugins:
-  - serverless-webpack
+  - serverless-webpack-TEST
   - serverless-iam-roles-per-function
 
 provider:
