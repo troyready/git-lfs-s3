@@ -11,7 +11,7 @@
     "declaration": false,
     "removeComments": true,
     "strictNullChecks": true,
-    "target": "es2018", // AWS Lambda Node v10.x
+    "target": "es2019", // AWS Lambda Node v12.x
     "typeRoots": [
       "node_modules/@types"
     ],
