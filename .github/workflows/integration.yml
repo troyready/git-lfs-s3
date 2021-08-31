@@ -1,6 +1,6 @@
 # Run secret-dependent integration tests only after /ok-to-test approval
 on:
-  pull_request:
+  pull_request: {}
   repository_dispatch:
     types: [ok-to-test-command]
 
