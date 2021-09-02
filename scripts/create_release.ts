@@ -5,7 +5,7 @@
  */
 
 import * as fs from "fs";
-import chalk from "chalk";
+import * as chalk from "chalk";
 import * as path from "path";
 import * as promptSync from "prompt-sync";
 import { spawnSync } from "child_process";
