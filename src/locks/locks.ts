@@ -34,10 +34,13 @@ const ddbClient = new DynamoDBClient({});
 /** Return all lock items (in native js types) from DDB table */
 async function scanTable(): Promise<Array<any>> {
   let items: Array<any> = [];
-  const paginator = paginateScan({ client: ddbClient }, { TableName: tableName });
+  const paginator = paginateScan(
+    { client: ddbClient },
+    { TableName: tableName },
+  );
   for await (const page of paginator) {
     if ("Items" in page) {
-      items = [...items, ...page.Items!.map(e => unmarshall(e))];
+      items = [...items, ...page.Items!.map((e) => unmarshall(e))];
     }
   }
   return items;
@@ -93,7 +96,9 @@ async function listLocks(params: any): Promise<Record<LockObjKey, any[]>> {
 }
 
 /** List locks in locks/verify format */
-async function listVerifyLocks(username: string): Promise<Record<LocksVerifyObjKeys, unknown>> {
+async function listVerifyLocks(
+  username: string,
+): Promise<Record<LocksVerifyObjKeys, unknown>> {
   const locks: Record<LocksVerifyObjKeys, any[]> = { ours: [], theirs: [] };
 
   for (const tableLockEntry of await scanTable()) {

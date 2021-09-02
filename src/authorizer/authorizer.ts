@@ -89,13 +89,12 @@ async function validateUser(
 }
 
 /** Split and decode authorization header */
-export function getCredsFromAuthHeader(
-  authHeader: string,
-): { username: string; password: string } {
+export function getCredsFromAuthHeader(authHeader: string): {
+  username: string;
+  password: string;
+} {
   const base64Creds = authHeader.split(" ")[1];
-  const credArray = Buffer.from(base64Creds, "base64")
-    .toString()
-    .split(":");
+  const credArray = Buffer.from(base64Creds, "base64").toString().split(":");
   return {
     password: credArray[1],
     username: credArray[0],
