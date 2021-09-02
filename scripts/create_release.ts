@@ -10,6 +10,7 @@ import * as path from "path";
 import * as promptSync from "prompt-sync";
 import { spawnSync } from "child_process";
 
+const repoName = "troyready/git-lfs-s3";
 const rootPath = path.dirname(__dirname);
 const changelogFilePath = path.join(rootPath, "CHANGELOG.md");
 const packageJsonFilePath = path.join(rootPath, "package.json");
@@ -91,7 +92,7 @@ async function createRelease() {
         )
         .replace(
           /^\[Unreleased\]: .*\.\.\.HEAD$/gm,
-          `[Unreleased]: https://github.com/troyready/ihlp/compare/v${newVersion}...HEAD\n[${newVersion}]: https://github.com/troyready/ihlp/compare/v${currentVersion}...v${newVersion}`,
+          `[Unreleased]: https://github.com/${repoName}/compare/v${newVersion}...HEAD\n[${newVersion}]: https://github.com/${repoName}/compare/v${currentVersion}...v${newVersion}`,
         ),
     );
 
