@@ -4,9 +4,10 @@ const mockCognitoIdpSend = jest.fn();
 jest.mock("@aws-sdk/client-cognito-identity-provider", () => {
   return {
     ...jest.requireActual("@aws-sdk/client-cognito-identity-provider"),
-    CognitoIdentityProviderClient: function CognitoIdentityProviderClient(): void {
-      this.send = mockCognitoIdpSend;
-    },
+    CognitoIdentityProviderClient:
+      function CognitoIdentityProviderClient(): void {
+        this.send = mockCognitoIdpSend;
+      },
   };
 });
 import { AdminInitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
@@ -16,7 +17,7 @@ const mockMethodArn =
   "arn:aws:execute-api:us-west-2:123456790:apiIdFoo/dev/post/unused";
 const mockCognitoIdpSendImplementation = jest
   .fn()
-  .mockImplementation(command => {
+  .mockImplementation((command) => {
     if (command instanceof AdminInitiateAuthCommand) {
       if (
         "AuthParameters" in command.input &&
@@ -31,7 +32,7 @@ const mockCognitoIdpSendImplementation = jest
   });
 
 function unusedCallback<T>() {
-  return (undefined as any) as T;
+  return undefined as any as T;
 }
 
 describe("Test authorizer", () => {

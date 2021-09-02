@@ -44,9 +44,9 @@ import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getExpiryString, handler } from "./batch";
 
 function unusedCallback<T>() {
-  return (undefined as any) as T;
+  return undefined as any as T;
 }
-const mockS3SendImplementation = jest.fn().mockImplementation(command => {
+const mockS3SendImplementation = jest.fn().mockImplementation((command) => {
   if (command instanceof HeadObjectCommand) {
     return new Promise((resolve, reject) => {
       if (["mockexists1", "mockexists2"].includes(command.input.Key!)) {
@@ -138,8 +138,7 @@ describe("Handler tests", () => {
               header: {
                 "Content-Type": "application/octet-stream",
               },
-              href:
-                "https://mocked-jest-bucket.s3.us-west-2.amazonaws.com/mocknew1?...",
+              href: "https://mocked-jest-bucket.s3.us-west-2.amazonaws.com/mocknew1?...",
             },
           },
           authenticated: true,
@@ -188,8 +187,7 @@ describe("Handler tests", () => {
           actions: {
             download: {
               expires_at: expect.any(String),
-              href:
-                "https://mocked-jest-bucket.s3.us-west-2.amazonaws.com/mockexists1?...",
+              href: "https://mocked-jest-bucket.s3.us-west-2.amazonaws.com/mockexists1?...",
             },
           },
           authenticated: true,

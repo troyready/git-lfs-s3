@@ -46,10 +46,10 @@ import { marshall } from "@aws-sdk/util-dynamodb";
 import { handler } from "./locks";
 
 function unusedCallback<T>() {
-  return (undefined as any) as T;
+  return undefined as any as T;
 }
 
-const mockDdbSendImplementation = jest.fn().mockImplementation(command => {
+const mockDdbSendImplementation = jest.fn().mockImplementation((command) => {
   if (command instanceof QueryCommand) {
     return new Promise((resolve, reject) => {
       if (
@@ -239,7 +239,7 @@ describe("Handler tests", () => {
     expect(parsedhandlerReturnBody.locks).toHaveLength(2);
     expect(parsedhandlerReturnBody.locks).toEqual(
       expect.arrayContaining(
-        [mockTableItem0, mockTableItem1].map(e => ({
+        [mockTableItem0, mockTableItem1].map((e) => ({
           id: e.id.S,
           locked_at: e.lockedAt.S,
           owner: { name: e.ownerName.S },
