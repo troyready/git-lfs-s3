@@ -12,20 +12,8 @@ runs:
     - name: Install modules
       run: npm ci
       shell: bash
-    - run: echo "Executing 'sls remove' to remove a previous deployment in case it wasn't correctly torn down previously"
+    - run: echo "Running tests"
       shell: bash
-    - name: Destroy stack (in case previous execution failed)
-      run: npx sls remove -s inttest${{ inputs.env_suffix }} -r us-west-2 || true
-      shell: bash
-    - run: echo "Executing 'sls deploy'"
-      shell: bash
-    - name: Deploy stack
-      run: npx sls deploy -s inttest${{ inputs.env_suffix }} -r us-west-2 --verbose || { echo 'Executing sls remove as deploy failed'; npx sls remove -s inttest${{ inputs.env_suffix }} -r us-west-2; false; }
-      shell: bash
-    - run: echo "Tearing down deployment"
-      shell: bash
-    - name: Destroy stack
-      run: npx sls remove -s inttest${{ inputs.env_suffix }} -r us-west-2
-      shell: bash
-    - run: echo "Integration tests succeeded"
+    - name: Running tests
+      run: npm run integration
       shell: bash
