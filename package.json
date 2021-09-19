@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "docs": "typedoc",
-    "format": "prettier scripts src -c",
-    "formatfix": "prettier scripts src -w",
+    "format": "prettier scripts src test -c",
+    "formatfix": "prettier scripts src test -w",
+    "integration": "ts-node test/index.ts",
     "lint": "eslint scripts src --ext .ts",
     "lintfix": "npm run lint -- --fix",
     "test": "jest",
@@ -25,6 +26,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@npmcli/ci-detect": "^1.3.0",
     "@types/aws-lambda": "^8.10.83",
     "@types/jest": "^27.0.1",
     "@types/node": "^11.10.4",
