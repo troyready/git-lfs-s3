@@ -15,5 +15,5 @@ runs:
     - run: echo "Running tests"
       shell: bash
     - name: Running tests
-      run: npm run integration
+      run: ENV_SUFFIX=${{ inputs.env_suffix }} npm run integration
       shell: bash
