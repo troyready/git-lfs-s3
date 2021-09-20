@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: IAM Role for integration teseting
 Outputs:
   BoundaryPolicyArn:
-    Description: Arn of IAM Managed Policy for user-created roles
+    Description: Arn of IAM Managed Policy to be used as a permissions boundary
     Value:
       Ref: BoundaryPolicy
   RoleArn:
@@ -14,7 +14,7 @@ Outputs:
         - Arn
 Parameters:
   EnvironmentName:
-    Description: "Name of environment for the user (used as a prefix to the name)"
+    Description: "Name of environment for the role (used in tags)"
     Type: String
   RepoName:
     Description: "Name of GitHub repo"

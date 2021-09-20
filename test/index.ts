@@ -8,6 +8,10 @@ import { spawnSync } from "child_process";
 import * as ciDetect from "@npmcli/ci-detect";
 import * as path from "path";
 import * as fs from "fs";
+import {
+  CloudFormationClient,
+  DescribeStacksCommand,
+} from "@aws-sdk/client-cloudformation";
 
 const region = "us-west-2";
 
@@ -62,6 +66,7 @@ export async function test(): Promise<void> {
         console.error(
           `Deployment in environment ${env} failed; running destroy...`,
         );
+        await waitForStackUpdateComplete("git-lfs-s3-" + env, region);
         spawnSync(npxBinary, ["sls", "remove", "-r", region, "-s", env], {
           stdio: "inherit",
         }).status;
@@ -114,6 +119,39 @@ async function deploy(npxBinary: string, env: string): Promise<number | null> {
   }
 
   return secondSpawnResult.status;
+}
+
+/** Wait for CloudFormation Stack to finish updating
+ *
+ * Primarily used to work around:
+ * https://github.com/serverless/serverless/issues/6089
+ *
+ */
+async function waitForStackUpdateComplete(
+  stackName: string,
+  region: string,
+): Promise<void> {
+  let stackDone = false;
+  const cfnClient = new CloudFormationClient({ region: region });
+  do {
+    const describeStacksCommandResponse = await cfnClient.send(
+      new DescribeStacksCommand({ StackName: stackName }),
+    );
+    if (
+      !describeStacksCommandResponse.Stacks ||
+      !describeStacksCommandResponse.Stacks[0].StackStatus ||
+      !describeStacksCommandResponse.Stacks[0].StackStatus.endsWith(
+        "_IN_PROGRESS",
+      )
+    ) {
+      stackDone = true;
+    } else {
+      console.log(
+        "Stack still updating; waiting 10 seconds before checking again...",
+      ),
+        await new Promise((r) => setTimeout(r, 10000)); // sleep 10 sec
+    }
+  } while (stackDone == false);
 }
 
 test();
