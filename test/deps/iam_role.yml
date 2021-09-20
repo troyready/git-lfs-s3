@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: IAM User for integration teseting
+Description: IAM Role for integration teseting
 Outputs:
   BoundaryPolicyArn:
     Description: Arn of IAM Managed Policy for user-created roles
