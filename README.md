@@ -35,7 +35,7 @@ aws cognito-idp admin-create-user --user-pool-id USERPOOLID --username DESIREDUS
 
 (substituting `USERPOOLID`, `DESIREDUSERNAME`, `DESIREDEMAILADDRESS`, `REGION`, & the phone number `XXXXXXXXXX`)
 
-Then set a password for that user (ensure [it is not saved in your shell history](https://stackoverflow.com/a/29188490/2547802)):
+Then set a password for that user (ensure it is not saved in your shell history, e.g. for [bash](https://stackoverflow.com/a/29188490/2547802) or [zsh](https://superuser.com/a/352858)):
 
 ```bash
  aws cognito-idp admin-set-user-password --user-pool-id USERPOOLID --username DESIREDUSERNAME --password PASSWORDHERE --permanent --region REGION
