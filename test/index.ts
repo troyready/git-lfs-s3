@@ -79,7 +79,6 @@ export async function test(): Promise<void> {
 
 /** Deploy project and confirm idempotence */
 async function deploy(npxBinary: string, env: string): Promise<number | null> {
-  // let exitCode: number | null;
   // First deploy
   const exitCode = spawnSync(
     npxBinary,
@@ -93,18 +92,28 @@ async function deploy(npxBinary: string, env: string): Promise<number | null> {
     return exitCode;
   }
 
-  // TODO: add idempotence check after switching to esbuild
-  return exitCode;
-  // console.log("Deploying stack again to check for idempotenance...")
-  // const secondSpawnResult = spawnSync(npxBinary, ["sls", "deploy", "-r", region, "-s", env], {
-  // });
+  console.log("Deploying stack again to check for idempotenance...");
+  const secondSpawnResult = spawnSync(npxBinary, [
+    "sls",
+    "deploy",
+    "-r",
+    region,
+    "-s",
+    env,
+  ]);
 
-  // if (!secondSpawnResult.stdout.includes("Service files not changed. Skipping deployment")) {
-  //   console.error("Serverless did not correctly skip re-deployment on second command invocation");
-  //   return 1
-  // }
+  if (
+    !secondSpawnResult.stdout.includes(
+      "Service files not changed. Skipping deployment",
+    )
+  ) {
+    console.error(
+      "Serverless did not correctly skip re-deployment on second command invocation",
+    );
+    return 1;
+  }
 
-  // return secondSpawnResult.status
+  return secondSpawnResult.status;
 }
 
 test();

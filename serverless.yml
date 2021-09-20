@@ -1,7 +1,7 @@
 service: git-lfs-s3
 
 plugins:
-  - serverless-webpack
+  - serverless-esbuild
   - serverless-iam-roles-per-function
 
 provider:
@@ -12,13 +12,10 @@ package:
   individually: true
 
 custom:
-  webpack:
-    serializedCompile: true
-    excludeFiles:
-      - "scripts/*"
-      - "src/**/*.test.ts"
-      - "src/**/__mocks__/*.ts"
-      - "test/*"
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: true
 
 functions:
   batch:
