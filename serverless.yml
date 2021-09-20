@@ -164,7 +164,7 @@ resources:
       Properties: 
         ClientName: "${self:service}-${opt:stage}"
         ExplicitAuthFlows: 
-          - ADMIN_NO_SRP_AUTH
+          - ADMIN_NO_SRP_AUTHTEST
         GenerateSecret: false
         SupportedIdentityProviders: 
           - COGNITO
