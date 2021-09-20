@@ -2,7 +2,7 @@
 
 Set the following GitHub repository secrets for integration tests.
 
-### IAM User
+### IAM Role
 
 Create the IAM Role via CloudFormation:
 
