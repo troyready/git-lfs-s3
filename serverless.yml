@@ -18,6 +18,7 @@ custom:
       - "scripts/*"
       - "src/**/*.test.ts"
       - "src/**/__mocks__/*.ts"
+      - "test/*"
 
 functions:
   batch:
@@ -115,15 +116,20 @@ functions:
             - Arn
 
 resources:
+  Outputs:
+    UserPoolId:
+      Description: Id of the Cognito User Pool
+      Value:
+        Ref: UserPool
   Resources:
     GatewayResponse:
-      Type: 'AWS::ApiGateway::GatewayResponse'
+      Type: AWS::ApiGateway::GatewayResponse
       Properties:
         ResponseParameters:
           gatewayresponse.header.WWW-Authenticate: "'Basic'"
         ResponseType: UNAUTHORIZED
         RestApiId:
-          Ref: 'ApiGatewayRestApi'
+          Ref: ApiGatewayRestApi
         StatusCode: '401'
     StorageBucket:
       Type: AWS::S3::Bucket
@@ -133,10 +139,10 @@ resources:
       DeletionPolicy: Retain
       Properties:
         AttributeDefinitions:
-          - AttributeName: "path"
-            AttributeType: "S"
-          - AttributeName: "id"
-            AttributeType: "S"
+          - AttributeName: path
+            AttributeType: S
+          - AttributeName: id
+            AttributeType: S
         BillingMode: PAY_PER_REQUEST
         GlobalSecondaryIndexes:
           - IndexName: *idindexname
@@ -154,6 +160,8 @@ resources:
         AdminCreateUserConfig:
           AllowAdminCreateUserOnly: true
         UserPoolName: "${self:service}-${opt:stage}"
+        UserPoolTags:
+          STAGE: "${opt:stage}"
     UserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties: 
@@ -165,8 +173,3 @@ resources:
           - COGNITO
         UserPoolId:
           Ref: UserPool
-  Outputs:
-    UserPoolId:
-      Description: Id of the Cognito User Pool
-      Value:
-        Ref: UserPool

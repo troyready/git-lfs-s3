@@ -1,16 +1,37 @@
 name: Run integration tests
 description: Deploy infrastructure, test it, and destroy it
 inputs:
+  boundary_policy:
+    description: IAM managed policy to apply as permissions boundary
+    required: true
   env_suffix:
-    description: 'Environment suffix'
+    description: Environment suffix
     required: true
 runs:
   using: "composite"
   steps:
+    - run: echo "Setting up AWS_WEB_IDENTITY_TOKEN_FILE"
+      shell: bash
+    - name: Set up AWS_WEB_IDENTITY_TOKEN_FILE
+      run: |
+          export AWS_WEB_IDENTITY_TOKEN_FILE=$(mktemp -d)/awscreds
+          echo AWS_WEB_IDENTITY_TOKEN_FILE=$AWS_WEB_IDENTITY_TOKEN_FILE >> $GITHUB_ENV
+          curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r '.value' > $AWS_WEB_IDENTITY_TOKEN_FILE
+      shell: bash
     - run: echo "Installing node modules"
       shell: bash
     - name: Install modules
       run: npm ci
+      shell: bash
+    - run: echo "Restricting roles to IAM boundary"
+      shell: bash
+    - name: Updating serverless config with boundary policy
+      run: "echo \"    AuthorizerIamRoleLambdaExecution:\n      Type: AWS::IAM::Role\n      Properties:\n        PermissionsBoundary: ${{ inputs.boundary_policy }}\n    BatchIamRoleLambdaExecution:\n      Type: AWS::IAM::Role\n      Properties:\n        PermissionsBoundary: ${{ inputs.boundary_policy }}\n    IamRoleLambdaExecution:\n      Type: AWS::IAM::Role\n      Properties:\n        PermissionsBoundary: ${{ inputs.boundary_policy }}\n    LocksIamRoleLambdaExecution:\n      Type: AWS::IAM::Role\n      Properties:\n        PermissionsBoundary: ${{ inputs.boundary_policy }}\" >> serverless.yml"
+      shell: bash
+    - run: echo "Removing deletion policies from config"
+      shell: bash
+    - name: Removing deletion policies from config
+      run: "sed -i '/DeletionPolicy: Retain/d' serverless.yml"
       shell: bash
     - run: echo "Running tests"
       shell: bash
