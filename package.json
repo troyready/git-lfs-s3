@@ -6,7 +6,7 @@
   "scripts": {
     "docs": "typedoc",
     "integration": "ts-node test/index.ts",
-    "lint": "eslint scripts src test --ext .ts",
+    "lint": "eslint scripts src test .eslintrc.js jest.config.js --ext .ts",
     "lintfix": "npm run lint -- --fix",
     "test": "jest",
     "coverage": "npm test -- --coverage",
