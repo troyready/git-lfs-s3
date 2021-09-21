@@ -163,8 +163,9 @@ resources:
       Type: AWS::Cognito::UserPoolClient
       Properties: 
         ClientName: "${self:service}-${opt:stage}"
+        # TEST
         ExplicitAuthFlows: 
-          - ADMIN_NO_SRP_AUTHTEST
+          - ADMIN_NO_SRP_AUTH
         GenerateSecret: false
         SupportedIdentityProviders: 
           - COGNITO
