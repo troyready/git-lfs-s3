@@ -117,7 +117,7 @@ data "aws_iam_policy_document" "policy" {
     ]
 
     resources = [
-      "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}::restapis*",
+      "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}::/restapis*",
     ]
   }
 
@@ -195,7 +195,7 @@ data "aws_iam_policy_document" "policy" {
 
     condition {
       test     = "StringLike"
-      variable = "aws:RequestTag/STAGE"
+      variable = "aws:ResourceTag/STAGE"
 
       values = [
         "${var.resource_prefix}*",
