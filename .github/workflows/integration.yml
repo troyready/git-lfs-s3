@@ -13,8 +13,6 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       id-token: write
-    env:
-      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
     steps:
     - name: Branch based PR checkout
       uses: actions/checkout@v2
@@ -23,6 +21,7 @@ jobs:
       with:
         boundary_policy: ${{ secrets.AWS_PERMISSIONS_BOUNDARY_ARN }}
         env_suffix: ${{ github.event.pull_request.number }}
+        role_to_assume: ${{ secrets.AWS_ROLE_ARN }}
 
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
   integration-fork:
@@ -35,8 +34,6 @@ jobs:
       id-token: write
       checks: write
       contents: write
-    env:
-      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
     steps:
     # Check out merge commit
     - name: Fork based /ok-to-test checkout
@@ -48,6 +45,7 @@ jobs:
       with:
         boundary_policy: ${{ secrets.AWS_PERMISSIONS_BOUNDARY_ARN }}
         env_suffix: ${{ github.event.client_payload.pull_request.number }}
+        role_to_assume: ${{ secrets.AWS_ROLE_ARN }}
 
     # Update check run called "integration-fork"
     - uses: actions/github-script@v1

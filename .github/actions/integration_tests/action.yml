@@ -1,6 +1,9 @@
 name: Run integration tests
 description: Deploy infrastructure, test it, and destroy it
 inputs:
+  role_to_assume:
+    description: AWS Role to assume
+    required: true
   boundary_policy:
     description: IAM managed policy to apply as permissions boundary
     required: true
@@ -10,14 +13,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: echo "Setting up AWS_WEB_IDENTITY_TOKEN_FILE"
+    - run: echo "Assuming AWS Role"
       shell: bash
-    - name: Set up AWS_WEB_IDENTITY_TOKEN_FILE
-      run: |
-          export AWS_WEB_IDENTITY_TOKEN_FILE=$(mktemp -d)/awscreds
-          echo AWS_WEB_IDENTITY_TOKEN_FILE=$AWS_WEB_IDENTITY_TOKEN_FILE >> $GITHUB_ENV
-          curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r '.value' > $AWS_WEB_IDENTITY_TOKEN_FILE
-      shell: bash
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-east-1
+        role-to-assume: ${{ inputs.role_to_assume }}
+        role-session-name: gitlfss3-gha
     - run: echo "Installing node modules"
       shell: bash
     - name: Install modules
