@@ -40,7 +40,7 @@ functions:
                   - Arn
               - "/*"
     environment:
-      BUCKET_NAME:
+      BUCKET_NAMEX:
         Ref: StorageBucket
     events:
       - http:
