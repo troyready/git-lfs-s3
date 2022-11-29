@@ -45,7 +45,7 @@
     "serverless-iam-roles-per-function": "^3.2.0",
     "ts-jest": "^27.0.5",
     "ts-node": "^8.0.2",
-    "typedoc": "^0.21.6",
+    "typedoc": "^0.21.10",
     "typescript": "^4.1.3"
   },
   "prettier": {
