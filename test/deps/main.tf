@@ -28,7 +28,10 @@ data "aws_iam_policy_document" "boundary" {
     actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
+      "logs:ListTagsForResource",
       "logs:PutLogEvents",
+      "logs:TagResource",
+      "logs:UntagResource",
     ]
 
     resources = [
@@ -309,6 +312,9 @@ data "aws_iam_policy_document" "policy" {
     actions = [
       "logs:CreateLogGroup",
       "logs:DeleteLogGroup",
+      "logs:ListTagsForResource",
+      "logs:TagResource",
+      "logs:UntagResource",
     ]
 
     resources = [
