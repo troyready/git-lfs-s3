@@ -121,6 +121,7 @@ data "aws_iam_policy_document" "policy" {
 
     resources = [
       "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}::/restapis*",
+      "arn:${data.aws_partition.current.partition}:apigateway:${data.aws_region.current.name}::/tags/*",
     ]
   }
 
@@ -160,6 +161,7 @@ data "aws_iam_policy_document" "policy" {
     actions = [
       "cognito-idp:CreateUserPoolClient",
       "cognito-idp:DeleteUserPoolClient",
+      "cognito-idp:DescribeUserPool",
     ]
 
     resources = [
@@ -334,10 +336,11 @@ data "aws_iam_policy_document" "policy" {
       "s3:GetLifecycleConfiguration",
       "s3:GetBucketPolicy",
       "s3:GetBucketPolicyStatus",
+      "s3:GetBucketTagging",
       "s3:GetObject",
-      "s3:HeadObject",
       "s3:ListBucket",
       "s3:ListBucketVersions",
+      "s3:PutBucketTagging",
       "s3:PutBucketVersioning",
       "s3:PutBucketPolicy",
       "s3:PutEncryptionConfiguration",

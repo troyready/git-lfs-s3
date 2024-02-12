@@ -7,7 +7,7 @@ plugins:
 provider:
   architecture: arm64
   name: aws
-  runtime: nodejs16.x
+  runtime: nodejs20.x
 
 package:
   individually: true

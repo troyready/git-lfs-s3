@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- Updated lambda nodejs runtime to v20
 - Default to arm64 lambda functions
 
 ## [1.4.0] - 2022-11-28
