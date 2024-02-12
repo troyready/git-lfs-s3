@@ -108,13 +108,15 @@ async function deploy(npxBinary: string, env: string): Promise<number | null> {
   ]);
 
   if (
-    !secondSpawnResult.stdout.includes(
-      "Service files not changed. Skipping deployment",
+    !secondSpawnResult.stderr.includes(
+      "No changes to deploy. Deployment skipped",
     )
   ) {
     console.error(
       "Serverless did not correctly skip re-deployment on second command invocation",
     );
+    console.error("stdout: " + secondSpawnResult.stdout);
+    console.error("stderr: " + secondSpawnResult.stderr);
     return 1;
   }
 
