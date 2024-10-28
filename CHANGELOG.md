@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2024-10-27
+### Fixed
+- Updated serverless & esbuild dependencies to fix package build errors
+
 ## [1.5.0] - 2024-02-11
 ### Changed
 - Updated lambda nodejs runtime to v20
@@ -64,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
-[Unreleased]: https://github.com/troyready/git-lfs-s3/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/troyready/git-lfs-s3/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/troyready/git-lfs-s3/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/troyready/git-lfs-s3/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/troyready/git-lfs-s3/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/troyready/git-lfs-s3/compare/v1.2.4...v1.3.0
