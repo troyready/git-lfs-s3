@@ -24,3 +24,7 @@ export function ISODateString(d: Date): string {
     "Z"
   );
 }
+
+// Kept in sync with s3 event trigger in serverless.yml
+export const completedMultipartUploadNotificationObjectSuffix =
+  ".multipartuploadcomplete";

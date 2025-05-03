@@ -53,6 +53,7 @@ functions:
             resultTtlInSeconds: 0
             identitySource: method.request.header.Authorization
             type: request
+    memorySize: 512
   locks:
     handler: src/locks/locks.handler
     iamRoleStatements:
@@ -89,14 +90,48 @@ functions:
           authorizer: *authorizer
       - http:
           path: locks
-          method: get  # list locks
+          method: get # list locks
           integration: lambda-proxy
           authorizer: *authorizer
       - http:
           path: locks
-          method: post  # create lock
+          method: post # create lock
           integration: lambda-proxy
           authorizer: *authorizer
+  completemultipartupload:
+    handler: src/completemultipartupload/handler.handler
+    iamRoleStatements:
+      - Action:
+          - s3:PutObject
+        Effect: "Allow"
+        Resource:
+          Fn::Join:
+            - ""
+            - - Fn::GetAtt:
+                  - StorageBucket
+                  - Arn
+              - "/*"
+      - Action:
+          - s3:DeleteObject
+          - s3:GetObject
+        Effect: "Allow"
+        Resource:
+          Fn::Join:
+            - ""
+            - - Fn::GetAtt:
+                  - StorageBucket
+                  - Arn
+              - "/*.multipartuploadcomplete"
+    events:
+      - s3:
+          bucket:
+            Ref: StorageBucket
+          event: s3:ObjectCreated:Put
+          existing: true
+          rules:
+            - suffix: .multipartuploadcomplete
+    memorySize: 512
+    timeout: 900 # complete multipart upload can take minutes
   authorizer:
     handler: src/authorizer/authorizer.handler
     environment:
@@ -128,10 +163,17 @@ resources:
         ResponseType: UNAUTHORIZED
         RestApiId:
           Ref: ApiGatewayRestApi
-        StatusCode: '401'
+        StatusCode: "401"
     StorageBucket:
       Type: AWS::S3::Bucket
       DeletionPolicy: Retain
+      Properties:
+        LifecycleConfiguration:
+          Rules:
+            - AbortIncompleteMultipartUpload:
+                DaysAfterInitiation: 1
+              Id: DeleteIncompleteMultipartUploads
+              Status: Enabled
     LockTable:
       Type: AWS::DynamoDB::Table
       DeletionPolicy: Retain
@@ -154,7 +196,7 @@ resources:
             KeyType: HASH
     UserPool:
       Type: AWS::Cognito::UserPool
-      Properties: 
+      Properties:
         AdminCreateUserConfig:
           AllowAdminCreateUserOnly: true
         UserPoolName: "${self:service}-${opt:stage}"
@@ -162,12 +204,12 @@ resources:
           STAGE: "${opt:stage}"
     UserPoolClient:
       Type: AWS::Cognito::UserPoolClient
-      Properties: 
+      Properties:
         ClientName: "${self:service}-${opt:stage}"
-        ExplicitAuthFlows: 
+        ExplicitAuthFlows:
           - ADMIN_NO_SRP_AUTH
         GenerateSecret: false
-        SupportedIdentityProviders: 
+        SupportedIdentityProviders:
           - COGNITO
         UserPoolId:
           Ref: UserPool
