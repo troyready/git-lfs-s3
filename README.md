@@ -62,6 +62,19 @@ git lfs install
 
 That's it. On push/pull, you'll be prompted for Cognito credentials.
 
+### Handling Files >= 5GB
+
+The backend S3 storage service won't accept files larger than 5GB using Git LFS's normal basic transfer agent. When attempting to upload them, git-lfs-s3 will reject requests that don't claim support for its custom `multipart3upload` [transfer adapter](https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md).
+
+A python script implementing this is [located here](./git-lfs-multiparts3upload). Download it, place it in your $PATH (e.g. `/usr/local/bin`), ensure it's executable, and configure your repo to use it:
+
+```bash
+git config --add lfs.customtransfer.multipart3upload.path git-lfs-multiparts3upload
+git config --add lfs.customtransfer.multipart3upload.direction upload
+```
+
+(or set the `--global` option to save the options in your user .gitconfig for use with all repositories and allow easy `git clone`ing of repos)
+
 ## Further Customization Ideas
 
 * Add an API Gateway custom domain to the API to get a better URL

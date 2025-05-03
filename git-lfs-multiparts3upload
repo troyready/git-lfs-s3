@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""
+Git LFS multipart3upload transfer agent
+"""
+
+import json
+import sys
+import tempfile
+from typing import Dict, Any, Optional
+import urllib.error
+import urllib.request
+
+def write_error_log(message:str, exit=True) -> None:
+    with tempfile.NamedTemporaryFile(delete=False, prefix='git-lfs-multipart3upload-', suffix='.log') as tmp_file:
+        tmp_file.write(message.encode('utf-8'))
+        if exit:
+            sys.exit(1)
+
+class MultipartS3UploadTransferAgent:
+    def read_line(self) -> Optional[str]:
+        """Read a line from stdin."""
+        try:
+            return sys.stdin.readline().strip()
+        except Exception as e:
+            write_error_log(f"Error reading from stdin: {e}")
+
+    def write_line(self, data: Dict[str, Any]) -> None:
+        """Write a line to stdout."""
+        try:
+            sys.stdout.write(json.dumps(data) + "\n")
+            sys.stdout.flush()
+        except Exception as e:
+            write_error_log(f"Error writing to stdout: {e}")
+
+    def send_progress(self, oid: str, bytes_so_far: int, bytes_since_last: int) -> None:
+        """Send a progress update."""
+        self.write_line({
+            "event": "progress",
+            "oid": oid,
+            "bytesSoFar": bytes_so_far,
+            "bytesSinceLast": bytes_since_last,
+        })
+
+    def put_request(self, url: str, data: bytes) -> Dict[str, Any]:
+        """Make a PUT request with the given data."""
+        try:
+            request = urllib.request.Request(
+                url,
+                data=data,
+                method='PUT'
+            )
+            with urllib.request.urlopen(request) as response:
+                if response.status not in (200, 201):
+                    raise urllib.error.HTTPError(
+                        url, response.status,
+                        f"PUT request failed with status {response.status}",
+                        response.headers, None
+                    )
+                return response.headers
+        except urllib.error.URLError as e:
+            write_error_log(f"Failed to make PUT request: {e}")
+            sys.exit(1)
+
+    def handle_upload(self, transfer_request: Dict[str, Any]) -> None:
+        """Handle an upload transfer request."""
+        try:
+            oid = transfer_request["oid"]
+            size = transfer_request["size"]
+            multipart_s3_upload_href = json.loads(transfer_request["action"]["href"])
+            presigned_urls = multipart_s3_upload_href["presignedurls"]
+
+            part_number = 1
+            total_uploaded = 0
+            chunk_size = size // len(presigned_urls)
+            completed_parts = []
+            if size % len(presigned_urls) != 0:
+                chunk_size = min(size // (len(presigned_urls) - 1), 5_000_000_000) # s3 max upload chunk of 5GB
+
+            with open(transfer_request["path"], 'rb') as f:
+                for presigned_url in presigned_urls:
+                    if part_number == len(presigned_urls):
+                        chunk = f.read() # For the last part, read the remaining bytes
+                    else:
+                        chunk = f.read(chunk_size)
+
+                    part_upload_response_headers = self.put_request(presigned_url, chunk)
+                    completed_parts.append({'ETag': part_upload_response_headers['ETag'], 'PartNumber': part_number})
+                    total_uploaded += len(chunk)
+                    self.send_progress(oid, total_uploaded, len(chunk))
+                    part_number += 1
+
+            self.put_request(
+                multipart_s3_upload_href["completionurl"],
+                json.dumps({
+                  "MultipartUpload": {"Parts": completed_parts},
+                  "UploadId": multipart_s3_upload_href["uploadid"],
+                }).encode('utf-8'))
+
+            self.write_line({
+                "event": "complete",
+                "oid": oid
+            })
+
+        except Exception as e:
+            write_error_log(f"Error during upload: {e}", exit=False)
+            self.write_line({
+                "event": "error",
+                "oid": transfer_request["oid"],
+                "error": {
+                    "code": 1,
+                    "message": str(e)
+                }
+            })
+
+    def run(self):
+        """Main event loop."""
+        try:
+            init_line = self.read_line()
+            if not init_line:
+                return
+
+            init_data = json.loads(init_line)
+            if init_data["event"] != "init":
+                raise ValueError("Expected init event")
+            if init_data["operation"] != "upload":
+                self.write_line({
+                    "event": "error",
+                    "oid": init_data["oid"],
+                    "error": {
+                        "code": 32,
+                        "message": "Unsupported operation"
+                    }
+                })
+                sys.exit(1)
+
+            self.write_line({}) # Confirm initialization
+
+            while True:
+                line = self.read_line()
+                if not line:
+                    break
+
+                transfer_request = json.loads(line)
+
+                if transfer_request["event"] == "terminate":
+                    break
+                elif transfer_request["event"] == "upload":
+                    self.handle_upload(transfer_request)
+
+        except Exception as e:
+            write_error_log(f"Fatal error: {e}")
+
+if __name__ == "__main__":
+    agent = MultipartS3UploadTransferAgent()
+    agent.run()
