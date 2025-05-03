@@ -38,7 +38,11 @@ async function createRelease() {
   console.log("Checking GitHub CLI login status...");
   exitCode = spawnSync("gh", ["auth", "status"], { stdio: "inherit" }).status;
   if (exitCode != 0) {
-    console.log(chalk.red("ERROR: Log into GitHub CLI first (gh auth login)"));
+    console.log(
+      chalk.red(
+        "ERROR: Log into GitHub CLI first (gh auth login --skip-ssh-key)",
+      ),
+    );
     process.exit(exitCode ? exitCode : 1);
   }
 
