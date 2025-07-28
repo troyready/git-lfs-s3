@@ -1,4 +1,4 @@
-import { Context, CustomAuthorizerEvent } from "aws-lambda";
+import { Context, APIGatewayRequestAuthorizerEvent } from "aws-lambda";
 
 const mockCognitoIdpSend = jest.fn();
 jest.mock("@aws-sdk/client-cognito-identity-provider", () => {
@@ -37,6 +37,8 @@ function unusedCallback<T>() {
 
 describe("Test authorizer", () => {
   beforeEach(() => {
+    process.env.USER_POOL_ID = "test-user-pool-id";
+    process.env.USER_POOL_CLIENT_ID = "test-client-id";
     jest.clearAllMocks();
   });
 
@@ -50,7 +52,8 @@ describe("Test authorizer", () => {
   test("Error returned on missing headers", async () => {
     await expect(
       handler(
-        { methodArn: mockMethodArn, type: "unused" } as CustomAuthorizerEvent,
+        { methodArn: mockMethodArn, 
+          type: "REQUEST" } as APIGatewayRequestAuthorizerEvent,
         {} as Context,
         unusedCallback<any>(),
       ),
@@ -63,8 +66,19 @@ describe("Test authorizer", () => {
         {
           headers: { foo: "bar" },
           methodArn: mockMethodArn,
-          type: "unused",
-        } as CustomAuthorizerEvent,
+          type: "REQUEST",
+          multiValueHeaders: {},
+          pathParameters: null,
+          queryStringParameters: null,
+          multiValueQueryStringParameters: null,
+          requestContext: {} as any,
+          resource: "/",
+          httpMethod: "GET",
+          path: "/",
+          body: null,
+          isBase64Encoded: false,
+          stageVariables: null,
+        } as APIGatewayRequestAuthorizerEvent,
         {} as Context,
         unusedCallback<any>(),
       ),
@@ -78,8 +92,19 @@ describe("Test authorizer", () => {
       {
         headers: { Authorization: "Basic Zm9vOmJhcg==" },
         methodArn: mockMethodArn,
-        type: "unused",
-      } as CustomAuthorizerEvent,
+        type: "REQUEST",
+        multiValueHeaders: {},
+        pathParameters: null,
+        queryStringParameters: null,
+        multiValueQueryStringParameters: null,
+        requestContext: {} as any,
+        resource: "/",
+        httpMethod: "GET",
+        path: "/",
+        body: null,
+        isBase64Encoded: false,
+        stageVariables: null,
+      } as APIGatewayRequestAuthorizerEvent,
       {} as Context,
       unusedCallback<any>(),
     );
@@ -109,8 +134,19 @@ describe("Test authorizer", () => {
         {
           headers: { Authorization: "Basic YmFyOmJhcg==" }, // bad password
           methodArn: mockMethodArn,
-          type: "unused",
-        } as CustomAuthorizerEvent,
+          type: "REQUEST",
+          multiValueHeaders: {},
+          pathParameters: null,
+          queryStringParameters: null,
+          multiValueQueryStringParameters: null,
+          requestContext: {} as any,
+          resource: "/",
+          httpMethod: "GET",
+          path: "/",
+          body: null,
+          isBase64Encoded: false,
+          stageVariables: null,
+        } as APIGatewayRequestAuthorizerEvent,
         {} as Context,
         unusedCallback<any>(),
       ),

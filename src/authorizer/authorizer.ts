@@ -6,10 +6,11 @@
 
 import {
   Context,
-  CustomAuthorizerEvent,
-  CustomAuthorizerHandler,
-  CustomAuthorizerResult,
+  APIGatewayRequestAuthorizerEvent,
+  APIGatewayAuthorizerResult,
   PolicyDocument,
+  Handler,
+  AppSyncAuthorizerResult,
 } from "aws-lambda";
 import {
   AdminInitiateAuthCommand,
@@ -19,11 +20,16 @@ import "source-map-support/register";
 
 const userPoolId = process.env.USER_POOL_ID;
 const userPoolClientId = process.env.USER_POOL_CLIENT_ID;
+
+if (!userPoolId || !userPoolClientId) {
+  throw new Error("Missing USER_POOL_ID or USER_POOL_CLIENT_ID in environment variables.");
+}
+
 const cognitoIdpClient = new CognitoIdentityProviderClient({});
 
 /** Adapt the event methodArn to an IAM policy */
 function generateInvokePolicy(
-  event: CustomAuthorizerEvent,
+  event: APIGatewayRequestAuthorizerEvent,
   principal: string,
 ): { policyDocument: PolicyDocument; principalId: string } {
   const methodArnSections = event.methodArn.split(":");
@@ -102,10 +108,10 @@ export function getCredsFromAuthHeader(authHeader: string): {
 }
 
 /** AWS Lambda entrypoint */
-export const handler: CustomAuthorizerHandler = async (
-  event: CustomAuthorizerEvent,
+export const handler: Handler<APIGatewayRequestAuthorizerEvent, APIGatewayAuthorizerResult> = async (
+  event,
   context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
-): Promise<CustomAuthorizerResult> => {
+): Promise<APIGatewayAuthorizerResult> => {
   if (!event.headers) {
     throw new Error("No headers provided in event");
   }
