@@ -52,8 +52,10 @@ describe("Test authorizer", () => {
   test("Error returned on missing headers", async () => {
     await expect(
       handler(
-        { methodArn: mockMethodArn, 
-          type: "REQUEST" } as APIGatewayRequestAuthorizerEvent,
+        {
+          methodArn: mockMethodArn,
+          type: "REQUEST",
+        } as APIGatewayRequestAuthorizerEvent,
         {} as Context,
         unusedCallback<any>(),
       ),

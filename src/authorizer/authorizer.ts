@@ -5,12 +5,11 @@
  */
 
 import {
-  Context,
-  APIGatewayRequestAuthorizerEvent,
   APIGatewayAuthorizerResult,
+  APIGatewayRequestAuthorizerEvent,
+  APIGatewayRequestAuthorizerHandler,
+  Context,
   PolicyDocument,
-  Handler,
-  AppSyncAuthorizerResult,
 } from "aws-lambda";
 import {
   AdminInitiateAuthCommand,
@@ -22,7 +21,9 @@ const userPoolId = process.env.USER_POOL_ID;
 const userPoolClientId = process.env.USER_POOL_CLIENT_ID;
 
 if (!userPoolId || !userPoolClientId) {
-  throw new Error("Missing USER_POOL_ID or USER_POOL_CLIENT_ID in environment variables.");
+  throw new Error(
+    "Missing USER_POOL_ID or USER_POOL_CLIENT_ID in environment variables.",
+  );
 }
 
 const cognitoIdpClient = new CognitoIdentityProviderClient({});
@@ -108,7 +109,7 @@ export function getCredsFromAuthHeader(authHeader: string): {
 }
 
 /** AWS Lambda entrypoint */
-export const handler: Handler<APIGatewayRequestAuthorizerEvent, APIGatewayAuthorizerResult> = async (
+export const handler: APIGatewayRequestAuthorizerHandler = async (
   event,
   context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<APIGatewayAuthorizerResult> => {
