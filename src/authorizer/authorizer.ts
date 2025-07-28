@@ -19,6 +19,11 @@ import "source-map-support/register";
 
 const userPoolId = process.env.USER_POOL_ID;
 const userPoolClientId = process.env.USER_POOL_CLIENT_ID;
+
+if (!userPoolId || !userPoolClientId) {
+  throw new Error("Missing USER_POOL_ID or USER_POOL_CLIENT_ID in environment variables.");
+}
+
 const cognitoIdpClient = new CognitoIdentityProviderClient({});
 
 /** Adapt the event methodArn to an IAM policy */
