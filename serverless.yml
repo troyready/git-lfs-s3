@@ -213,3 +213,7 @@ resources:
           - COGNITO
         UserPoolId:
           Ref: UserPool
+  extensions:
+    CustomDashresourceDashexistingDashs3LambdaFunction:
+      Properties:
+        Runtime: nodejs20.x
