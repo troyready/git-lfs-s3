@@ -5,7 +5,7 @@
  */
 
 import { spawnSync } from "child_process";
-import * as ciDetect from "@npmcli/ci-detect";
+import * as ci from "ci-info";
 import * as path from "path";
 import * as fs from "fs";
 import {
@@ -61,7 +61,7 @@ export async function test(): Promise<void> {
         process.exit(exitCode ? exitCode : 1);
       }
     } else {
-      if (ciDetect() as boolean | string) {
+      if (ci.isCI) {
         const deployExitCode = exitCode;
         console.error(
           `Deployment in environment ${env} failed; running destroy...`,
@@ -69,7 +69,7 @@ export async function test(): Promise<void> {
         await waitForStackUpdateComplete("git-lfs-s3-" + env, region);
         spawnSync(npxBinary, ["sls", "remove", "-r", region, "-s", env], {
           stdio: "inherit",
-        }).status;
+        });
         process.exit(deployExitCode ? deployExitCode : 1);
       } else {
         console.error(`Deployment in environment ${env} failed`);
@@ -150,8 +150,8 @@ async function waitForStackUpdateComplete(
     } else {
       console.log(
         "Stack still updating; waiting 10 seconds before checking again...",
-      ),
-        await new Promise((r) => setTimeout(r, 10000)); // sleep 10 sec
+      );
+      await new Promise((r) => setTimeout(r, 10000)); // sleep 10 sec
     }
   } while (stackDone == false);
 }

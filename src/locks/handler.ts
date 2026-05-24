@@ -5,10 +5,9 @@
  */
 
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyHandler,
-  APIGatewayProxyResult,
-  Context,
+  APIGatewayProxyEventV2WithLambdaAuthorizer,
+  APIGatewayProxyHandlerV2WithLambdaAuthorizer,
+  APIGatewayProxyResultV2,
 } from "aws-lambda";
 import "source-map-support/register";
 import { v4 as uuidv4 } from "uuid";
@@ -26,28 +25,63 @@ import { ISODateString } from "../util/util";
 type LockObjKey = "locks";
 type LocksVerifyObjKeys = "ours" | "theirs";
 
-const tableName = process.env.TABLE_NAME!;
-const tableIdIndexName = process.env.ID_INDEX_NAME!;
+interface LockEntry {
+  id: string;
+  path: string;
+  lockedAt: string;
+  ownerName: string;
+}
+
+interface LockParams {
+  id?: string;
+  path?: string;
+}
+
+interface LockRequestBody {
+  path: string;
+  force?: boolean;
+}
+
+interface LockResponse {
+  statusCode: number;
+  body: Record<string, unknown>;
+}
+
+interface FormattedLock {
+  id: string;
+  path: string;
+  locked_at: string;
+  owner: { name: string };
+}
+
+const tableName = process.env.TABLE_NAME;
+const tableIdIndexName = process.env.ID_INDEX_NAME;
+if (!tableName || !tableIdIndexName) {
+  throw new Error(
+    "TABLE_NAME and ID_INDEX_NAME environment variables must be set",
+  );
+}
+
 const deletePathRegex = /\/locks\/([-a-zA-Z0-9]*)\/unlock/;
 const ddbClient = new DynamoDBClient({});
 
 /** Return all lock items (in native js types) from DDB table */
-async function scanTable(): Promise<Array<any>> {
-  let items: Array<any> = [];
+async function scanTable(): Promise<LockEntry[]> {
+  let items: LockEntry[] = [];
   const paginator = paginateScan(
     { client: ddbClient },
     { TableName: tableName },
   );
   for await (const page of paginator) {
-    if ("Items" in page) {
-      items = [...items, ...page.Items!.map((e) => unmarshall(e))];
+    if ("Items" in page && page.Items) {
+      items = [...items, ...page.Items.map((e) => unmarshall(e) as LockEntry)];
     }
   }
   return items;
 }
 
 /** Turn DDB item format into Git LFS API format */
-function formatLockResponseFromTableEntry(entry: any): any {
+function formatLockResponseFromTableEntry(entry: LockEntry): FormattedLock {
   return {
     id: entry.id,
     path: entry.path,
@@ -57,8 +91,11 @@ function formatLockResponseFromTableEntry(entry: any): any {
 }
 
 /** List all locks or (if id or path provided) a single lock */
-async function listLocks(params: any): Promise<Record<LockObjKey, any[]>> {
-  const locks: Record<LockObjKey, any[]> = { locks: [] };
+async function listLocks(
+  params: LockParams | null,
+): Promise<Record<LockObjKey, FormattedLock[]>> {
+  const locks: Record<LockObjKey, FormattedLock[]> = { locks: [] };
+  if (!params) return locks;
   if (params.id) {
     const queryResponse = await ddbClient.send(
       new QueryCommand({
@@ -72,7 +109,9 @@ async function listLocks(params: any): Promise<Record<LockObjKey, any[]>> {
     );
     if (queryResponse.Items && queryResponse.Items.length > 0) {
       locks.locks.push(
-        formatLockResponseFromTableEntry(unmarshall(queryResponse.Items[0])),
+        formatLockResponseFromTableEntry(
+          unmarshall(queryResponse.Items[0]) as LockEntry,
+        ),
       );
     }
   } else if (params.path) {
@@ -84,7 +123,9 @@ async function listLocks(params: any): Promise<Record<LockObjKey, any[]>> {
     );
     if (getResponse.Item) {
       locks.locks.push(
-        formatLockResponseFromTableEntry(unmarshall(getResponse.Item)),
+        formatLockResponseFromTableEntry(
+          unmarshall(getResponse.Item) as LockEntry,
+        ),
       );
     }
   } else {
@@ -98,8 +139,11 @@ async function listLocks(params: any): Promise<Record<LockObjKey, any[]>> {
 /** List locks in locks/verify format */
 async function listVerifyLocks(
   username: string,
-): Promise<Record<LocksVerifyObjKeys, unknown>> {
-  const locks: Record<LocksVerifyObjKeys, any[]> = { ours: [], theirs: [] };
+): Promise<Record<LocksVerifyObjKeys, FormattedLock[]>> {
+  const locks: Record<LocksVerifyObjKeys, FormattedLock[]> = {
+    ours: [],
+    theirs: [],
+  };
 
   for (const tableLockEntry of await scanTable()) {
     if (tableLockEntry.ownerName == username) {
@@ -112,7 +156,10 @@ async function listVerifyLocks(
 }
 
 /** Create file lock */
-async function createLock(body: any, username: string): Promise<any> {
+async function createLock(
+  body: LockRequestBody,
+  username: string,
+): Promise<LockResponse> {
   // First check for existing lock
   const getResponse = await ddbClient.send(
     new GetItemCommand({
@@ -124,13 +171,15 @@ async function createLock(body: any, username: string): Promise<any> {
     return {
       statusCode: 409,
       body: {
-        lock: formatLockResponseFromTableEntry(unmarshall(getResponse.Item)),
+        lock: formatLockResponseFromTableEntry(
+          unmarshall(getResponse.Item) as LockEntry,
+        ),
         message: "already created lock",
       },
     };
   }
 
-  const itemParams = {
+  const itemParams: LockEntry = {
     path: body.path,
     id: uuidv4(),
     lockedAt: ISODateString(new Date()),
@@ -147,10 +196,10 @@ async function createLock(body: any, username: string): Promise<any> {
 
 /** Delete file lock */
 async function deleteLock(
-  body: any,
+  body: LockRequestBody,
   username: string,
   lockId: string,
-): Promise<any> {
+): Promise<LockResponse> {
   const queryResponse = await ddbClient.send(
     new QueryCommand({
       TableName: tableName,
@@ -162,22 +211,18 @@ async function deleteLock(
     }),
   );
   if (queryResponse.Items && queryResponse.Items.length > 0) {
-    if (
-      unmarshall(queryResponse.Items[0]).ownerName == username ||
-      body.force
-    ) {
+    const queryItem = unmarshall(queryResponse.Items[0]) as LockEntry;
+    if (queryItem.ownerName == username || body.force) {
       await ddbClient.send(
         new DeleteItemCommand({
           TableName: tableName,
-          Key: marshall({ path: unmarshall(queryResponse.Items[0]).path }),
+          Key: marshall({ path: queryItem.path }),
         }),
       );
       return {
         statusCode: 200,
         body: {
-          lock: formatLockResponseFromTableEntry(
-            unmarshall(queryResponse.Items[0]),
-          ),
+          lock: formatLockResponseFromTableEntry(queryItem),
         },
       };
     } else {
@@ -194,17 +239,14 @@ async function deleteLock(
 }
 
 /** AWS Lambda entrypoint */
-export const handler: APIGatewayProxyHandler = async (
-  event: APIGatewayProxyEvent,
-  context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
-): Promise<APIGatewayProxyResult> => {
+export const handler: APIGatewayProxyHandlerV2WithLambdaAuthorizer<
+  Record<string, string>
+> = async (
+  event: APIGatewayProxyEventV2WithLambdaAuthorizer<Record<string, string>>,
+): Promise<APIGatewayProxyResultV2<Record<string, string>>> => {
   let username = "";
-  if (
-    event.requestContext &&
-    event.requestContext.authorizer &&
-    event.requestContext.authorizer.principalId
-  ) {
-    username = event.requestContext.authorizer.principalId;
+  if (event.requestContext.authorizer?.lambda?.principalId) {
+    username = event.requestContext.authorizer.lambda.principalId;
   } else {
     console.log("Could not retrieve username from API Gateway");
     return {
@@ -216,15 +258,30 @@ export const handler: APIGatewayProxyHandler = async (
     };
   }
 
-  if (event.path == "/locks" && event.httpMethod == "GET") {
+  if (
+    event.requestContext.http.path == "/locks" &&
+    event.requestContext.http.method == "GET"
+  ) {
     return {
-      body: JSON.stringify(await listLocks(event.queryStringParameters)),
+      body: JSON.stringify(
+        await listLocks(
+          event.queryStringParameters
+            ? {
+                id: event.queryStringParameters.id,
+                path: event.queryStringParameters.path,
+              }
+            : null,
+        ),
+      ),
       headers: { "Content-Type": "application/vnd.git-lfs+json" },
       statusCode: 200,
     };
   }
 
-  if (event.path == "/locks/verify" && event.httpMethod == "POST") {
+  if (
+    event.requestContext.http.path == "/locks/verify" &&
+    event.requestContext.http.method == "POST"
+  ) {
     return {
       body: JSON.stringify(await listVerifyLocks(username)),
       headers: { "Content-Type": "application/vnd.git-lfs+json" },
@@ -232,9 +289,12 @@ export const handler: APIGatewayProxyHandler = async (
     };
   }
 
-  let body: any = {};
+  let body: LockRequestBody = {} as LockRequestBody;
   if (event.body) {
-    body = JSON.parse(event.body);
+    const rawBody = event.isBase64Encoded
+      ? Buffer.from(event.body, "base64").toString("utf-8")
+      : event.body;
+    body = JSON.parse(rawBody);
   } else {
     console.log("Body not found on event");
     return {
@@ -246,7 +306,10 @@ export const handler: APIGatewayProxyHandler = async (
     };
   }
 
-  if (event.path == "/locks" && event.httpMethod == "POST") {
+  if (
+    event.requestContext.http.path == "/locks" &&
+    event.requestContext.http.method == "POST"
+  ) {
     const createResponse = await createLock(body, username);
     return {
       body: JSON.stringify(createResponse.body),
@@ -255,8 +318,9 @@ export const handler: APIGatewayProxyHandler = async (
     };
   }
 
-  const deleteLockRegexMatch = event.path.match(deletePathRegex);
-  if (event.httpMethod == "POST" && deleteLockRegexMatch) {
+  const deleteLockRegexMatch =
+    event.requestContext.http.path.match(deletePathRegex);
+  if (event.requestContext.http.method == "POST" && deleteLockRegexMatch) {
     const deleteResponse = await deleteLock(
       body,
       username,

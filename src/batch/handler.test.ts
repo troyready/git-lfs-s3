@@ -1,28 +1,27 @@
-const mockBucketName = "mocked-jest-bucket";
-process.env.BUCKET_NAME = mockBucketName;
-
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
+  APIGatewayProxyEventV2,
+  APIGatewayProxyStructuredResultV2,
   Context,
 } from "aws-lambda";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const mockS3Send = jest.fn();
-jest.mock("@aws-sdk/client-s3", () => {
+const mockS3Send = vi.hoisted(() => vi.fn());
+vi.mock("@aws-sdk/client-s3", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@aws-sdk/client-s3")>();
   return {
-    ...jest.requireActual("@aws-sdk/client-s3"),
+    ...actual,
     S3Client: function S3Client(): void {
       this.send = mockS3Send;
     },
   };
 });
-jest.mock("@aws-sdk/s3-request-presigner", () => {
+vi.mock("@aws-sdk/s3-request-presigner", () => {
   return {
-    ...jest.requireActual("@aws-sdk/s3-request-presigner"),
     getSignedUrl: function getSignedUrl(
       client,
       command,
-      options?,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      _options?,
     ): Promise<string> {
       return new Promise((resolve, reject) => {
         if ("Bucket" in command.input && "Key" in command.input) {
@@ -41,15 +40,12 @@ jest.mock("@aws-sdk/s3-request-presigner", () => {
   };
 });
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
-import { getExpiryString, handler } from "./batch";
+import { getExpiryString, handler } from "./handler";
 
-function unusedCallback<T>() {
-  return undefined as any as T;
-}
-const mockS3SendImplementation = jest.fn().mockImplementation((command) => {
+const mockS3SendImplementation = vi.fn().mockImplementation((command) => {
   if (command instanceof HeadObjectCommand) {
     return new Promise((resolve, reject) => {
-      if (["mockexists1", "mockexists2"].includes(command.input.Key!)) {
+      if (["mockexists1", "mockexists2"].includes(command.input.Key ?? "")) {
         resolve({ ContentLength: 3191, ContentType: "image/jpeg" });
       } else {
         reject({ name: "NotFound" });
@@ -66,38 +62,68 @@ describe("Utility tests", () => {
   });
 });
 
+function generateV2Event(
+  body: string | undefined,
+  routeKey = "POST /objects/batch",
+): APIGatewayProxyEventV2 {
+  return {
+    version: "2.0",
+    routeKey,
+    rawPath: "/objects/batch",
+    rawQueryString: "",
+    isBase64Encoded: false,
+    cookies: [],
+    headers: {},
+    body,
+    requestContext: {
+      accountId: "unused",
+      apiId: "unused",
+      domainName: "unused",
+      domainPrefix: "unused",
+      http: {
+        method: "POST",
+        path: "/objects/batch",
+        protocol: "unused",
+        sourceIp: "unused",
+        userAgent: "unused",
+      },
+      requestId: "unused",
+      routeKey: routeKey,
+      stage: "unused",
+      time: "unused",
+      timeEpoch: 0,
+    },
+  };
+}
+
 describe("Handler tests", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test("handler errors on request without body", async () => {
     const batchReturn = await handler(
-      {} as APIGatewayProxyEvent,
+      generateV2Event(undefined),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(batchReturn).toMatchObject({ statusCode: 400 });
   });
 
   test("handler errors on non-basic transfer request", async () => {
     const batchReturn = await handler(
-      {
-        body: JSON.stringify({ transfers: ["somethingcrazy"] }),
-      } as APIGatewayProxyEvent,
+      generateV2Event(JSON.stringify({ transfers: ["somethingcrazy"] })),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(batchReturn).toMatchObject({ statusCode: 400 });
   });
 
   test("handler errors on invalid operation", async () => {
     const batchReturn = await handler(
-      {
-        body: JSON.stringify({ operation: "somethingcrazy" }),
-      } as APIGatewayProxyEvent,
+      generateV2Event(JSON.stringify({ operation: "somethingcrazy" })),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(batchReturn).toMatchObject({ statusCode: 400 });
   });
@@ -105,23 +131,23 @@ describe("Handler tests", () => {
   test("handler returns valid upload response for new and existing objects", async () => {
     mockS3Send.mockImplementation(mockS3SendImplementation);
     const batchReturn = await handler(
-      {
-        body: JSON.stringify({
+      generateV2Event(
+        JSON.stringify({
           objects: [
             { oid: "mockexists1", size: 123 },
             { oid: "mocknew1", size: 456 },
           ],
           operation: "upload",
         }),
-      } as APIGatewayProxyEvent,
+      ),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(batchReturn).toMatchObject({
       headers: { "Content-Type": "application/vnd.git-lfs+json" },
     });
     const parsedBatchReturnBody = JSON.parse(
-      (batchReturn as APIGatewayProxyResult).body,
+      (batchReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedBatchReturnBody.transfer).toBe("basic");
     expect(parsedBatchReturnBody.objects).toEqual(
@@ -152,23 +178,23 @@ describe("Handler tests", () => {
   test("handler returns valid download response for new and existing objects", async () => {
     mockS3Send.mockImplementation(mockS3SendImplementation);
     const batchReturn = await handler(
-      {
-        body: JSON.stringify({
+      generateV2Event(
+        JSON.stringify({
           objects: [
             { oid: "mockexists1", size: 123 },
             { oid: "mocknew1", size: 456 },
           ],
           operation: "download",
         }),
-      } as APIGatewayProxyEvent,
+      ),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(batchReturn).toMatchObject({
       headers: { "Content-Type": "application/vnd.git-lfs+json" },
     });
     const parsedBatchReturnBody = JSON.parse(
-      (batchReturn as APIGatewayProxyResult).body,
+      (batchReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedBatchReturnBody.transfer).toBe("basic");
     expect(parsedBatchReturnBody.objects).toEqual(

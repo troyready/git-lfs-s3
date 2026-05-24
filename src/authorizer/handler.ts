@@ -5,11 +5,9 @@
  */
 
 import {
-  APIGatewayAuthorizerResult,
-  APIGatewayRequestAuthorizerEvent,
-  APIGatewayRequestAuthorizerHandler,
-  Context,
-  PolicyDocument,
+  APIGatewayRequestAuthorizerEventV2,
+  APIGatewayRequestSimpleAuthorizerHandlerV2WithContext,
+  APIGatewaySimpleAuthorizerWithContextResult,
 } from "aws-lambda";
 import {
   AdminInitiateAuthCommand,
@@ -26,40 +24,7 @@ if (!userPoolId || !userPoolClientId) {
   );
 }
 
-const cognitoIdpClient = new CognitoIdentityProviderClient({});
-
-/** Adapt the event methodArn to an IAM policy */
-function generateInvokePolicy(
-  event: APIGatewayRequestAuthorizerEvent,
-  principal: string,
-): { policyDocument: PolicyDocument; principalId: string } {
-  const methodArnSections = event.methodArn.split(":");
-  const stageAndApiArn = methodArnSections[5].split("/");
-  const apiArn =
-    "arn:aws:execute-api:" +
-    methodArnSections[3] + // region
-    ":" +
-    methodArnSections[4] + // accountId
-    ":" +
-    stageAndApiArn[0] + // restapiId
-    "/" +
-    stageAndApiArn[1] + // stage
-    "/*/*";
-  const policy = {
-    policyDocument: {
-      Statement: [
-        {
-          Action: "execute-api:Invoke",
-          Effect: "Allow",
-          Resource: [apiArn],
-        },
-      ],
-      Version: "2012-10-17",
-    },
-    principalId: principal,
-  };
-  return policy;
-}
+export const cognitoIdpClient = new CognitoIdentityProviderClient({});
 
 /** Validate user credentials */
 async function validateUser(
@@ -95,11 +60,13 @@ async function validateUser(
   }
 }
 
-/** Split and decode authorization header */
-export function getCredsFromAuthHeader(authHeader: string): {
+export interface Creds {
   username: string;
   password: string;
-} {
+}
+
+/** Split and decode authorization header */
+export function getCredsFromAuthHeader(authHeader: string): Creds {
   const base64Creds = authHeader.split(" ")[1];
   const credArray = Buffer.from(base64Creds, "base64").toString().split(":");
   return {
@@ -109,22 +76,27 @@ export function getCredsFromAuthHeader(authHeader: string): {
 }
 
 /** AWS Lambda entrypoint */
-export const handler: APIGatewayRequestAuthorizerHandler = async (
-  event,
-  context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
-): Promise<APIGatewayAuthorizerResult> => {
-  if (!event.headers) {
-    throw new Error("No headers provided in event");
-  }
-
-  if (!event.headers.Authorization) {
+export const handler: APIGatewayRequestSimpleAuthorizerHandlerV2WithContext<
+  Record<string, string>
+> = async (
+  event: APIGatewayRequestAuthorizerEventV2,
+): Promise<
+  APIGatewaySimpleAuthorizerWithContextResult<Record<string, string>>
+> => {
+  const authHeader = event.headers?.authorization;
+  if (!authHeader) {
     throw new Error("Unauthorized");
   }
 
-  const creds = getCredsFromAuthHeader(event.headers.Authorization);
+  const creds = getCredsFromAuthHeader(authHeader);
 
   if (await validateUser(creds.username, creds.password)) {
-    return generateInvokePolicy(event, creds.username);
+    return {
+      isAuthorized: true,
+      context: {
+        principalId: creds.username,
+      },
+    } as APIGatewaySimpleAuthorizerWithContextResult<Record<string, string>>;
   } else {
     throw new Error("Unauthorized");
   }

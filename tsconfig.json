@@ -1,20 +1,13 @@
 {
-  "compileOnSave": false,
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node",
     "baseUrl": "src",
-    "rootDirs": [
-      "src"
-    ],
-    "sourceMap": true,
-    "declaration": false,
+    "esModuleInterop": true,
+    "lib": ["es2023"],
+    "module": "preserve",
     "removeComments": true,
-    "strictNullChecks": true,
-    "target": "es2019", // AWS Lambda Node v12.x
-    "typeRoots": [
-      "node_modules/@types"
-    ],
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "target": "es2023",
   },
   "typedocOptions": {
     "exclude": [

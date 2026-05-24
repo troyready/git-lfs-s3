@@ -5,10 +5,9 @@
  */
 
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyHandler,
-  APIGatewayProxyResult,
-  Context,
+  APIGatewayProxyEventV2,
+  APIGatewayProxyHandlerV2,
+  APIGatewayProxyResultV2,
 } from "aws-lambda";
 import "source-map-support/register";
 import {
@@ -36,6 +35,14 @@ type MultipartS3UploadHref = {
   completionurl: string;
   presignedurls: string[];
   uploadid: string;
+};
+
+type BatchObject = { oid: string; size: number };
+type BatchRequestBody = {
+  operation: string;
+  objects: BatchObject[];
+  transfers?: string[];
+  force?: boolean;
 };
 
 /** Generate RFC 3339 date string set out in the future when S3 presigned URLs will expire */
@@ -220,10 +227,10 @@ async function getBatchMultipartUploadObject(
 
 /** Iterate through requested objects and get the storage response for each of them */
 async function getBatchResponse(
-  body: any,
+  body: BatchRequestBody,
   transferType: string,
 ): Promise<Record<string, unknown>> {
-  const objects: Array<Promise<any>> = [];
+  const objects: Array<Promise<Record<string, unknown>>> = [];
 
   if (transferType == "basic") {
     for (const entry of body.objects) {
@@ -238,13 +245,15 @@ async function getBatchResponse(
 }
 
 /** AWS Lambda entrypoint */
-export const handler: APIGatewayProxyHandler = async (
-  event: APIGatewayProxyEvent,
-  context: Context, // eslint-disable-line @typescript-eslint/no-unused-vars
-): Promise<APIGatewayProxyResult> => {
-  let body: any = {};
+export const handler: APIGatewayProxyHandlerV2 = async (
+  event: APIGatewayProxyEventV2,
+): Promise<APIGatewayProxyResultV2<Record<string, string>>> => {
+  let body: BatchRequestBody = {} as BatchRequestBody;
   if (event.body) {
-    body = JSON.parse(event.body);
+    const rawBody = event.isBase64Encoded
+      ? Buffer.from(event.body, "base64").toString("utf-8")
+      : event.body;
+    body = JSON.parse(rawBody);
   } else {
     console.log("Body not found on event");
     return {
@@ -260,7 +269,7 @@ export const handler: APIGatewayProxyHandler = async (
     if (
       body.operation === "download" &&
       "transfers" in body &&
-      !body.transfers.includes("basic")
+      !body.transfers?.includes("basic")
     ) {
       console.log("Invalid transfer type requested");
       return {
@@ -295,7 +304,7 @@ export const handler: APIGatewayProxyHandler = async (
       if (
         requiresMultiPartUpload &&
         (!("transfers" in body) ||
-          !body.transfers.includes(multipart3uploadTransferTypeName))
+          !body.transfers?.includes(multipart3uploadTransferTypeName))
       ) {
         console.log("Invalid transfer type requested");
         return {
@@ -308,7 +317,7 @@ export const handler: APIGatewayProxyHandler = async (
       } else if (
         !requiresMultiPartUpload &&
         "transfers" in body &&
-        !body.transfers.includes("basic")
+        !body.transfers?.includes("basic")
       ) {
         console.debug(
           "No large files being uploaded but no basic transfer type requested",
