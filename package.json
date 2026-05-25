@@ -1,6 +1,6 @@
 {
   "name": "sls-git-lfs-s3",
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "Git LFS S3 Storage Service",
   "devEngines": {
     "runtime": {
