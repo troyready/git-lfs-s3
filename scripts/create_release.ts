@@ -7,7 +7,7 @@
 import * as fs from "fs";
 import * as chalk from "chalk";
 import * as path from "path";
-import * as promptSync from "prompt-sync";
+import promptSync from "prompt-sync";
 import { spawnSync } from "child_process";
 
 const repoName = "troyready/git-lfs-s3";
@@ -78,7 +78,7 @@ async function createRelease() {
         `  "version": "${newVersion}",`,
       ),
     );
-    exitCode = spawnSync("npm", ["i"], {
+    exitCode = spawnSync("pnpm", ["install"], {
       cwd: rootPath,
       stdio: "inherit",
     }).status;

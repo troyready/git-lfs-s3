@@ -7,72 +7,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Deployment process changed to Pulumi
+  - This is a major change and will require `pulumi import`ing resources like your storage bucket to retain existing data.
+- REST API changed to HTTP API
+
 ## [1.6.0] - 2025-05-03
+
 ### Added
+
 - Support for files larger than 5GB
 
 ### Fixed
+
 - Bumped aws sdk versions to fix tests
 
 ## [1.5.1] - 2024-10-27
+
 ### Fixed
+
 - Updated serverless & esbuild dependencies to fix package build errors
 
 ## [1.5.0] - 2024-02-11
+
 ### Changed
+
 - Updated lambda nodejs runtime to v20
 - Default to arm64 lambda functions
 
 ## [1.4.0] - 2022-11-28
+
 ### Changed
+
 - Bumped serverless version to v3
 - Updated lambda nodejs runtime to v16
 
 ## [1.3.0] - 2021-09-19
+
 ### Fixed
+
 - Deployment idempotency (via switch to serverless-esbuild)
 
 ### Added
+
 - Tags to Cognito User Pool
 
 ## [1.2.4] - 2021-09-02
+
 ### Fixed
+
 - Test dependency update
 
 ## [1.2.3] - 2021-08-20
+
 ### Changed
+
 - Bump tsconfig target to es2019
 
 ## [1.2.2] - 2021-08-20
+
 ### Changed
+
 - Migrated from tslint to eslint; cleaned up some linting errors
 
 ## [1.2.1] - 2021-03-17
+
 ### Changed
+
 - Update to serverless-webpack v5.4 & enable serialized function compilation
 
 ## [1.2.0] - 2021-02-10
+
 ### Changed
+
 - Update to aws sdk v3
 - Package functions individually
 
 ## [1.1.0] - 2021-01-21
+
 ### Added
+
 - Git LFS locking support
 
 ### Changed
+
 - Dropped legacy aws sdk code
 
 ## [1.0.1] - 2019-12-09
+
 ### Changed
+
 - Dropped webpack-node-externals in favor of bundling in aws-sdk directly
   - This significantly increases the package size (+2MB), but demonstrates better technical correctness by using the exact sdk version specified in package.json
 
 ### Fixed
+
 - Dependency security updates
 
 ## [1.0.0] - 2019-11-06
+
 ### Added
+
 - Initial release
 
 [Unreleased]: https://github.com/troyready/git-lfs-s3/compare/v1.6.0...HEAD

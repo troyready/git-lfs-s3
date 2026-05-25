@@ -1,0 +1,8 @@
+allowBuilds:
+  # No runtime effect/use
+  # https://github.com/protobufjs/protobuf.js/blob/master/scripts/postinstall.js
+  protobufjs: false
+
+  # Not required
+  # https://github.com/evanw/esbuild/issues/4085#issuecomment-2696009329
+  esbuild: false

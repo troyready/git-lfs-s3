@@ -1,29 +1,33 @@
 # Git LFS S3 Storage Service
 
-This project deploys a [Serverless](https://serverless.com/cli/) [Git LFS](https://git-lfs.github.com/) service, with objects stored on S3 & authentication performed via a Cognito User Pool.
+### TODO: Continue pulumi migration by updating `index.ts`
+
+This project deploys a [Serverless](https://aws.amazon.com/serverless/) [Git LFS](https://git-lfs.github.com/) service, with objects stored on S3 & authentication performed via a Cognito User Pool. Deployment is handled with [Pulumi](https://www.pulumi.com/).
 
 ## Purpose
 
 Provides a mechanism to use Git LFS to keep binaries/large files out of your git history that doesn't depend on your git hosting provider. Reasons to use this could include:
 
-* Your git repo hosting doesn't include Git LFS support
-* Your existing git repo hosting Git LFS support is cost-prohibitive
-* You need to host the files yourself (e.g. retention/[purge](https://help.github.com/en/github/managing-large-files/removing-files-from-git-large-file-storage#git-lfs-objects-in-your-repository) requirements)
+- Your git repo hosting doesn't include Git LFS support
+- Your existing git repo hosting Git LFS support is cost-prohibitive
+- You need to host the files yourself (e.g. retention/[purge](https://help.github.com/en/github/managing-large-files/removing-files-from-git-large-file-storage#git-lfs-objects-in-your-repository) requirements)
 
 ## Deploying
 
 ### API
 
-* Clone the project
-* Execute:
-  * `npm install`
-    * If any errors arise try deleting `package-lock.json` and trying again
-  * sls deploy for your stage & region; e.g. for the "common" stage in oregon: `npx sls deploy -s common -r us-west-2 --verbose`
+- Clone the project
+- Execute:
+  - `pnpm install`
+    - If any errors arise try deleting `pnpm-lock.yaml` and trying again
+    - npm, yarn, etc, can also be used
+  - `pulumi up` for your environment; e.g. for the "dev" stack: `npulumi up --stack dev`
+    - Default region is set to us-west-2 in Pulumi.yaml, update to your desired region.
 
 Upon completion, the 2 relevant stack outputs to note are:
 
-* `ServiceEndpoint`: This is your Git LFS url
-* `UserPoolId`: This is your Cognito User Pool id
+- `apiEndpoint`: This is your Git LFS url
+- `userPoolId`: This is your Cognito User Pool id
 
 ### Users
 
@@ -56,9 +60,9 @@ git lfs install
 
 ### Setting up the repo
 
-* Add any file patterns for Git LFS to track, e.g.: `git lfs track "*.deb"`
-* Configure the url: `git config -f .lfsconfig remote.origin.lfsurl SERVICEENDPOINTHERE` (subtitute your ServiceEndpoint url)
-* Commit the `.gitattributes` & `.lfsconfig` files
+- Add any file patterns for Git LFS to track, e.g.: `git lfs track "*.deb"`
+- Configure the url: `git config -f .lfsconfig remote.origin.lfsurl APIENDPOINTHERE` (subtitute your apiEndpoint url)
+- Commit the `.gitattributes` & `.lfsconfig` files
 
 That's it. On push/pull, you'll be prompted for Cognito credentials.
 
@@ -77,6 +81,6 @@ git config --add lfs.customtransfer.multipart3upload.direction upload
 
 ## Further Customization Ideas
 
-* Add an API Gateway custom domain to the API to get a better URL
-* Swap out authentication
-  * Any backend method (e.g. LDAP) could be adapted into the authorizer in place of the current Cognito AdminInitiateAuth process.
+- Add an API Gateway custom domain to the API to get a better URL
+- Swap out authentication
+  - Any backend method (e.g. LDAP) could be adapted into the authorizer in place of the current Cognito AdminInitiateAuth process.

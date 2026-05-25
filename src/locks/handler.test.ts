@@ -11,21 +11,25 @@ const mockTableItem1 = {
   ownerName: { S: "otheruser" },
 };
 
-import { isDeepStrictEqual } from "util";
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
+  APIGatewayProxyEventV2WithLambdaAuthorizer,
+  APIGatewayProxyStructuredResultV2,
   Context,
 } from "aws-lambda";
+import { isDeepStrictEqual } from "util";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const mockDdbSend = jest.fn();
-jest.mock("@aws-sdk/client-dynamodb", () => {
+const mockDdbSend = vi.hoisted(() => vi.fn());
+vi.mock("@aws-sdk/client-dynamodb", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@aws-sdk/client-dynamodb")>();
   return {
-    ...jest.requireActual("@aws-sdk/client-dynamodb"),
+    ...actual,
     DynamoDBClient: function DynamoDBClient(): void {
       this.send = mockDdbSend;
     },
-    paginateScan: function paginateScan(config, input): any {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    paginateScan: function paginateScan(_config, _input) {
       return (async function* asyncGenerator() {
         let i = 0;
         while (i == 0) {
@@ -43,15 +47,11 @@ import {
   QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
-import { handler } from "./locks";
+import { handler } from "./handler";
 
-function unusedCallback<T>() {
-  return undefined as any as T;
-}
-
-const mockDdbSendImplementation = jest.fn().mockImplementation((command) => {
+const mockDdbSendImplementation = vi.fn().mockImplementation((command) => {
   if (command instanceof QueryCommand) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (
         command.input.KeyConditionExpression == "id = :hkey" &&
         isDeepStrictEqual(
@@ -77,8 +77,13 @@ const mockDdbSendImplementation = jest.fn().mockImplementation((command) => {
       }
     });
   } else if (command instanceof GetItemCommand) {
-    return new Promise((resolve, reject) => {
-      if (isDeepStrictEqual(command.input.Key, { path: mockTableItem1.path })) {
+    return new Promise((resolve) => {
+      if (
+        isDeepStrictEqual(
+          command.input.Key,
+          marshall({ path: mockTableItem1.path.S }),
+        )
+      ) {
         resolve({ Item: mockTableItem1 });
       } else {
         resolve({});
@@ -88,78 +93,98 @@ const mockDdbSendImplementation = jest.fn().mockImplementation((command) => {
     command instanceof PutItemCommand ||
     command instanceof DeleteItemCommand
   ) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       resolve({});
     });
   }
 });
 
-function generateAPIGatewayProxyEvent({
+function generateV2Event({
   httpMethod,
   path,
   body,
   queryStringParameters,
+  routeKey,
+  principalId,
 }: {
-  httpMethod;
-  path;
-  body;
-  queryStringParameters;
-}) {
+  httpMethod: string;
+  path: string;
+  body: string | null;
+  queryStringParameters: Record<string, string> | null;
+  routeKey?: string;
+  principalId?: string;
+}): APIGatewayProxyEventV2WithLambdaAuthorizer<Record<string, string>> {
+  const routeKeys: Record<string, string> = {
+    "GET /locks": "GET /locks",
+    "POST /locks": "POST /locks",
+    "POST /locks/verify": "POST /locks/verify",
+  };
+  const key = `${httpMethod} ${path}`;
+  const generatedRouteKey =
+    routeKey ?? routeKeys[key] ?? "POST /locks/{proxy+}";
+
+  const queryStrParams: Record<string, string> = {};
+  if (queryStringParameters) {
+    Object.entries(queryStringParameters).forEach(([k, v]) => {
+      queryStrParams[k] = v;
+    });
+  }
+
+  const authorizerContext: Record<string, string> = {};
+  if (principalId) {
+    authorizerContext.principalId = principalId;
+  }
+
   return {
-    body: body,
-    headers: {},
-    httpMethod: httpMethod,
+    version: "2.0",
+    routeKey: generatedRouteKey,
+    rawPath: path,
+    rawQueryString: new URLSearchParams(queryStringParameters ?? {}).toString(),
     isBase64Encoded: false,
-    multiValueHeaders: {},
-    multiValueQueryStringParameters: null,
-    path: path,
-    pathParameters: null,
-    queryStringParameters: queryStringParameters,
+    cookies: [],
+    headers: {},
+    queryStringParameters: queryStrParams,
+    body: body ?? null,
     requestContext: {
       accountId: "unused",
       apiId: "unused",
-      httpMethod: "unused",
-      identity: {
-        accessKey: "unused",
-        accountId: "unused",
-        apiKey: "unused",
-        apiKeyId: "unused",
-        caller: "unused",
-        clientCert: null,
-        cognitoAuthenticationProvider: "unused",
-        cognitoAuthenticationType: "unused",
-        cognitoIdentityId: "unused",
-        cognitoIdentityPoolId: "unused",
-        principalOrgId: "unused",
+      domainName: "unused",
+      domainPrefix: "unused",
+      http: {
+        method: httpMethod,
+        path,
+        protocol: "unused",
         sourceIp: "unused",
-        user: "unused",
         userAgent: "unused",
-        userArn: "unused",
       },
-      authorizer: { principalId: "unittestuser" },
-      path: "unused",
-      protocol: "unused",
-      stage: "unused",
       requestId: "unused",
-      requestTimeEpoch: 0,
-      resourceId: "unused",
-      resourcePath: "unused",
+      routeKey: generatedRouteKey,
+      stage: "unused",
+      time: "unused",
+      timeEpoch: 0,
+      authorizer: {
+        lambda: authorizerContext,
+      },
     },
-    resource: "unused",
-    stageVariables: null,
-  } as APIGatewayProxyEvent;
+  };
 }
 
 describe("Handler tests", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test("handler errors on request without username", async () => {
     const handlerReturn = await handler(
-      {} as APIGatewayProxyEvent,
+      generateV2Event({
+        httpMethod: "GET",
+        path: "/locks",
+        body: "{}",
+        queryStringParameters: null,
+        principalId: undefined,
+      }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 400 });
   });
@@ -167,18 +192,19 @@ describe("Handler tests", () => {
   test("handler returns query of locks by id", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "GET",
         path: "/locks",
         body: "{}",
         queryStringParameters: { id: mockTableItem0.id.S },
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 200 });
     const parsedhandlerReturnBody = JSON.parse(
-      (handlerReturn as APIGatewayProxyResult).body,
+      (handlerReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedhandlerReturnBody.locks).toHaveLength(1);
     expect(parsedhandlerReturnBody.locks).toEqual(
@@ -195,18 +221,19 @@ describe("Handler tests", () => {
   test("handler returns query of locks by path", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "GET",
         path: "/locks",
         body: "{}",
         queryStringParameters: { path: mockTableItem1.path.S },
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 200 });
     const parsedhandlerReturnBody = JSON.parse(
-      (handlerReturn as APIGatewayProxyResult).body,
+      (handlerReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedhandlerReturnBody.locks).toHaveLength(1);
     expect(parsedhandlerReturnBody.locks).toEqual(
@@ -223,18 +250,19 @@ describe("Handler tests", () => {
   test("handler returns list of all locks", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "GET",
         path: "/locks",
+        principalId: "unittestuser",
         body: "{}",
         queryStringParameters: {},
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 200 });
     const parsedhandlerReturnBody = JSON.parse(
-      (handlerReturn as APIGatewayProxyResult).body,
+      (handlerReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedhandlerReturnBody.locks).toHaveLength(2);
     expect(parsedhandlerReturnBody.locks).toEqual(
@@ -251,18 +279,19 @@ describe("Handler tests", () => {
   test("handler returns list of all locks in verify format", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks/verify",
         body: "{}",
         queryStringParameters: {},
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 200 });
     const parsedhandlerReturnBody = JSON.parse(
-      (handlerReturn as APIGatewayProxyResult).body,
+      (handlerReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedhandlerReturnBody).toMatchObject({
       ours: [
@@ -286,14 +315,14 @@ describe("Handler tests", () => {
 
   test("handler errors on lock creation request without body", async () => {
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks",
         body: null,
         queryStringParameters: {},
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 400 });
   });
@@ -301,14 +330,15 @@ describe("Handler tests", () => {
   test("handler errors when attempting to create a lock for an already locked path", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks",
         body: JSON.stringify({ path: mockTableItem1.path.S }),
         queryStringParameters: {},
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 409 });
   });
@@ -317,18 +347,19 @@ describe("Handler tests", () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const newLockPath = "/newlockpath";
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks",
         body: JSON.stringify({ path: newLockPath }),
         queryStringParameters: {},
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 201 });
     const parsedhandlerReturnBody = JSON.parse(
-      (handlerReturn as APIGatewayProxyResult).body,
+      (handlerReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedhandlerReturnBody).toMatchObject({
       lock: { path: newLockPath },
@@ -338,18 +369,20 @@ describe("Handler tests", () => {
   test("handler allows deletion of self-owned lock without force", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks/" + mockTableItem0.id.S + "/unlock",
         body: "{}",
         queryStringParameters: {},
+        routeKey: "POST /locks/{proxy+}",
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 200 });
     const parsedhandlerReturnBody = JSON.parse(
-      (handlerReturn as APIGatewayProxyResult).body,
+      (handlerReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedhandlerReturnBody).toMatchObject({
       lock: {
@@ -364,18 +397,20 @@ describe("Handler tests", () => {
   test("handler allows deletion of another user's lock with force", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks/" + mockTableItem1.id.S + "/unlock",
         body: JSON.stringify({ force: true }),
         queryStringParameters: {},
+        routeKey: "POST /locks/{proxy+}",
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 200 });
     const parsedhandlerReturnBody = JSON.parse(
-      (handlerReturn as APIGatewayProxyResult).body,
+      (handlerReturn as APIGatewayProxyStructuredResultV2).body,
     );
     expect(parsedhandlerReturnBody).toMatchObject({
       lock: {
@@ -390,29 +425,34 @@ describe("Handler tests", () => {
   test("handler denies attempt to delete another user's lock without force", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks/" + mockTableItem1.id.S + "/unlock",
         body: "{}",
         queryStringParameters: {},
+        routeKey: "POST /locks/{proxy+}",
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 403 });
   });
 
   test("handler errors when attempting to delete a non-existent lock", async () => {
     mockDdbSend.mockImplementation(mockDdbSendImplementation);
+    // const handlerReturn = await (handler as any)(
     const handlerReturn = await handler(
-      generateAPIGatewayProxyEvent({
+      generateV2Event({
         httpMethod: "POST",
         path: "/locks/foobar/unlock",
         body: "{}",
         queryStringParameters: {},
+        routeKey: "POST /locks/{proxy+}",
+        principalId: "unittestuser",
       }),
       {} as Context,
-      unusedCallback<any>(),
+      vi.fn(),
     );
     expect(handlerReturn).toMatchObject({ statusCode: 500 });
   });

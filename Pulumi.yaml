@@ -1,0 +1,9 @@
+name: git-lfs-s3
+runtime:
+  name: nodejs
+  options:
+    nodeargs: "--import tsx" # avoid tsc compilation errors https://github.com/pulumi/docs/issues/9466#issuecomment-2429480495
+    typescript: true
+description: Git LFS S3 Storage Service
+config:
+  aws:region: us-west-2 # update with your preferred region
