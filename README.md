@@ -1,7 +1,5 @@
 # Git LFS S3 Storage Service
 
-### TODO: Continue pulumi migration by updating `index.ts`
-
 This project deploys a [Serverless](https://aws.amazon.com/serverless/) [Git LFS](https://git-lfs.github.com/) service, with objects stored on S3 & authentication performed via a Cognito User Pool. Deployment is handled with [Pulumi](https://www.pulumi.com/).
 
 ## Purpose
